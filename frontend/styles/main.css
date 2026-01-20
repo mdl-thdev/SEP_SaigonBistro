@@ -1,0 +1,10 @@
+/* // SEP_SaigonBistro/docs/css/styles.css */
+
+/* small additions only; Tailwind handles most styling */
+html { scroll-behavior: smooth; }
+
+.hidden { display: none; }
+
+html, body { height: 100%; }
+img { max-width: 100%; height: auto; }
+

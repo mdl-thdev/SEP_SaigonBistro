@@ -1,0 +1,235 @@
+<!-- // SEP_SaigonBistro/docs/checkout/checkout.html -->
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Saigon Bistro - Checkout</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../css/styles.css" />
+
+</head>
+
+<body class="min-h-screen bg-white text-slate-900">
+    <!-- Header -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-black/60 backdrop-blur">
+        <div
+            class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 h-14 grid grid-cols-[auto_1fr_auto] items-center gap-8 text-white">
+            <div class="flex items-center gap-2">
+                <a href="index.html" class="font-extrabold tracking-tight">Saigon Bistro</a>
+            </div>
+
+            <nav class="hidden sm:flex items-center justify-center gap-1 text-sm font-semibold" aria-label="Primary">
+                <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="../index.html">Home</a>
+                <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="../index.html#story">Our Story</a>
+                <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="../menu/menu.html">Menu</a>
+                <!-- <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="../orders/orderStatus.html">Order</a> -->
+                <a id="orderNavLink" class="rounded-lg px-3 py-2 hover:bg-white/10" href="../orders/orderStatus.html">Order</a>
+                <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="../index.html#about">About Us</a>
+
+                <a id="adminDashboardLink" href="/admin/dashboard.html"
+                    class="hidden rounded-lg px-3 py-2 hover:bg-white/10 font-semibold">
+                    Dashboard
+                </a>
+            </nav>
+
+            <!-- Right: Auth-->
+            <div class="hidden sm:flex items-center gap-2 justify-end" id="authArea">
+
+                <div id="authLoggedOut" class="flex items-center gap-2">
+                    <a href="/signup/signup.html" class="rounded-xl px-3 py-2 text-sm font-semibold hover:bg-white/10">
+                        Sign Up
+                    </a>
+                    <a href="/login/login.html" class="rounded-xl px-3 py-2 text-sm font-semibold hover:bg-white/10">
+                        Login
+                    </a>
+                </div>
+
+                <div id="authLoggedIn" class="hidden items-center gap-2">
+                    <span id="welcomeUser" class="text-sm font-semibold text-white/90"></span>
+                    <button id="logoutBtn" class="rounded-xl px-3 py-2 text-sm font-semibold hover:bg-white/10">
+                        Logout
+                    </button>
+                </div>
+
+                <!-- <div class="flex items-center gap-2 justify-end">
+                <a href="../menu/menu.html"
+                    class="relative rounded-xl px-3 py-2 text-sm font-semibold hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2">
+                    Back to Menu
+                </a>
+            </div> -->
+
+            </div>
+        </div>
+    </header>
+
+    <!-- Main -->
+    <main id="main" class="flex-1 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-8 space-y-10">
+        <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight mb-8 text-center">Place Your Order</h1>
+
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-x-12">
+
+            <div class="lg:col-span-3">
+
+                <!-- Checkout Form -->
+                <form id="checkoutForm" class="space-y-10">
+
+                    <!-- Delivery Information -->
+                    <section class="space-y-6">
+
+                        <h2 class="text-2xl font-bold tracking-tight border-b pb-2">Delivery Information</h2>
+
+
+                        <div class="grid sm:grid-cols-2 gap-4">
+                            <input type="text" id="firstName" name="firstName" placeholder="First Name" required
+                                autocomplete="off"
+                                class="w-full p-3 border border-slate-300 rounded-lg focus:ring-slate-900 focus:border-slate-900" />
+
+                            <input type="text" id="lastName" name="lastName" placeholder="Last Name" required
+                                autocomplete="off"
+                                class="w-full p-3 border border-slate-300 rounded-lg focus:ring-slate-900 focus:border-slate-900" />
+                        </div>
+
+                        <input type="email" id="email" name="email" placeholder="Email Address" required
+                            autocomplete="off"
+                            class="w-full p-3 border border-slate-300 rounded-lg focus:ring-slate-900 focus:border-slate-900" />
+
+                        <input type="text" id="address" name="address" placeholder="Street" required
+                            autocomplete="off"
+                            class="w-full p-3 border border-slate-300 rounded-lg focus:ring-slate-900 focus:border-slate-900" />
+
+                        <div class="grid sm:grid-cols-3 gap-4">
+                            <input type="text" id="city" name="city" placeholder="Block and Unit Number" required
+                                autocomplete="off"
+                                class="w-full p-3 border border-slate-300 rounded-lg focus:ring-slate-900 focus:border-slate-900" />
+                            <input type="text" id="state" name="state" placeholder="City" required
+                                autocomplete="off"
+                                class="w-full p-3 border border-slate-300 rounded-lg focus:ring-slate-900 focus:border-slate-900" />
+                            <input type="text" id="zip" name="zip" placeholder="Zip/Postal Code" required
+                                autocomplete="off"
+                                class="w-full p-3 border border-slate-300 rounded-lg focus:ring-slate-900 focus:border-slate-900" />
+                        </div>
+
+                        <input type="text" id="phone" name="phone" placeholder="Phone Number" required
+                            autocomplete="off"
+                            class="w-full p-3 border border-slate-300 rounded-lg focus:ring-slate-900 focus:border-slate-900" />
+
+                        <!-- Payment Method -->
+                        <section class="space-y-6">
+                            <h2 class="text-2xl font-bold tracking-tight border-b pb-2">Payment Method</h2>
+                            <div class="space-y-3">
+                                <label
+                                    class="flex items-center space-x-3 cursor-pointer p-4 border border-slate-300 rounded-lg">
+                                    <input type="radio" name="payment" value="Card" checked
+                                        class="h-4 w-4 text-slate-900 focus:ring-slate-900 border-slate-300">
+                                    <span class="text-base font-medium">Credit/Debit Card</span>
+                                </label>
+                                <label
+                                    class="flex items-center space-x-3 cursor-pointer p-4 border border-slate-300 rounded-lg">
+                                    <input type="radio" name="payment" value="Cash"
+                                        class="h-4 w-4 text-slate-900 focus:ring-slate-900 border-slate-300">
+                                    <span class="text-base font-medium">Cash on Delivery</span>
+                                </label>
+                            </div>
+                        </section>
+
+                </form>
+            </div>
+
+            <!-- Order Summary -->
+            <div class="lg:col-span-2 mt-10 lg:mt-0">
+                <div class="bg-slate-50 p-6 rounded-xl shadow-lg sticky top-20">
+                    <h2 class="text-2xl font-bold tracking-tight mb-4 border-b pb-2">Order Summary</h2>
+
+                    <div id="checkoutCartItems" class="space-y-3 mb-6 min-h-20">
+                        <p id="emptyCheckoutMessage" class="text-center text-slate-500 py-4">Your cart is empty.</p>
+                    </div>
+
+                    <div class="space-y-2 border-t pt-4">
+                        <div class="flex justify-between">
+                            <span class="text-slate-600">Subtotal</span>
+                            <span id="subtotalText" class="font-semibold">$0.00</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-600">Delivery Fee</span>
+                            <span id="deliveryFeeText" class="font-semibold">$5.00</span>
+                        </div>
+                        <div class="flex justify-between text-lg font-bold pt-2 border-t mt-2">
+                            <span>Total</span>
+                            <span id="totalText">$0.00</span>
+                        </div>
+                    </div>
+
+                    <!-- Place Order Button -->
+                    <button type="submit" form="checkoutForm" id="placeOrderBtn"
+                        class="w-full mt-6 py-3 rounded-xl text-sm font-semibold bg-slate-900 text-white hover:bg-slate-800 transition
+                       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 opacity-50 pointer-events-none">
+                        Place Order (Total: <span id="buttonTotalText">$0.00</span>)
+                    </button>
+
+                    <div id="orderConfirmation"
+                        class="hidden mt-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg text-center">
+                        <p class="font-semibold">Order Placed Successfully! Thank you for your purchase.</p>
+
+                        <div class="mt-3 flex flex-col gap-2">
+                            <a href="/orders/orderStatus.html"
+                                class="inline-block rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">
+                                Check Order Status
+                            </a>
+
+                            <a href="/index.html" class="text-sm font-semibold underline">Go to Home</a>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- footer -->
+    <footer class="bg-[#1f1a14] text-slate-300 pt-20 pb-8 px-4 sm:px-6 lg:px-8">
+        <div class="mx-auto max-w-6xl">
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-12 sm:gap-16 md:gap-20">
+                <div class="col-span-1 md:col-span-2 space-y-4 flex flex-col items-start">
+                    <h2 class="text-xl font-bold text-white/90 mb-4">Saigon Bistro</h2>
+                    <div class="flex space-x-4 pt-2">
+                        <img class="w-6 h-6 cursor-pointer opacity-75 hover:opacity-100 transition"
+                            src="../assets/images/ig-icon.png" alt="Instagram" />
+                        <img class="w-6 h-6 cursor-pointer opacity-75 hover:opacity-100 transition"
+                            src="../assets/images/fb-icon.png" alt="Facebook" />
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <h2 class="text-xl font-bold text-white/90 mb-4">COMPANY</h2>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="../index.html" class="hover:text-white transition">Home</a></li>
+                        <li><a href="../index.html#about" class="hover:text-white transition">About Us</a></li>
+                        <li><a href="#" class="hover:text-white transition">Career</a></li>
+                        <li><a href="#" class="hover:text-white transition">Privacy Policy</a></li>
+                    </ul>
+                </div>
+
+                <div class="space-y-4">
+                    <h2 class="text-xl font-bold text-white/90 mb-4">GET IN TOUCH</h2>
+                    <ul class="space-y-2 text-sm">
+                        <li>+65 1234 5678</li>
+                        <li>contact@saigonbistro.com</li>
+                    </ul>
+                </div>
+            </div>
+            <hr class="w-full h-px my-10 border-none bg-white/10" />
+            <p class="text-center text-sm text-slate-400">
+                © 2025 SaigonBistro.com — All Rights Reserved
+            </p>
+        </div>
+    </footer>
+
+    <script type="module" src="./checkout.js"></script>
+
+</body>
+</html>

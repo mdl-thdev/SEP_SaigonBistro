@@ -1,0 +1,278 @@
+<!-- // SEP_SaigonBistro/frontend/public/index.html -->
+
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Saigon Bistro - Home</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="./styles/main.css" />
+
+</head>
+
+
+<body class="min-h-screen bg-white text-slate-900">
+
+  <header class="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur">
+    <div
+      class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 h-14 grid grid-cols-[auto_1fr_auto] items-center gap-8 text-white">
+      <div class="flex items-center gap-2">
+        <a href="index.html" class="font-extrabold tracking-tight">Saigon Bistro</a>
+      </div>
+
+      <nav class="hidden sm:flex items-center justify-center gap-1 text-sm font-semibold" aria-label="Primary">
+        <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="index.html">Home</a>
+        <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="#story">Our Story</a>
+        <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="./pages/menu/menu.html">Menu</a>
+        <a id="orderNavLink" class="rounded-lg px-3 py-2 hover:bg-white/10" href="./pages/orders/orderStatus.html">Order</a>
+        <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="#about">About Us</a>
+
+        <a id="adminDashboardLink" href="./pages/admin-dashboard/adminDashboard.html"
+          class="hidden rounded-lg px-3 py-2 hover:bg-white/10 font-semibold">
+          Dashboard
+        </a>
+      </nav>
+
+      <!-- Right: Auth-->
+      <div class="hidden sm:flex items-center gap-2 justify-end" id="authArea">
+
+        <div id="authLoggedOut" class="flex items-center gap-2">
+          <a href="./pages/signup/signup.html" class="rounded-xl px-3 py-2 text-sm font-semibold hover:bg-white/10">
+            Sign Up
+          </a>
+          <a href="./pages/login/login.html" class="rounded-xl px-3 py-2 text-sm font-semibold hover:bg-white/10">
+            Login
+          </a>
+        </div>
+
+        <div id="authLoggedIn" class="hidden items-center gap-2">
+          <span id="welcomeUser" class="text-sm font-semibold text-white/90"></span>
+          <button id="logoutBtn" class="rounded-xl px-3 py-2 text-sm font-semibold hover:bg-white/10">
+            Logout
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- banner -->
+  <section class="relative w-full h-[85vh] overflow-hidden">
+    <img src="assets/images/banner.png" class="absolute inset-0 w-full h-full object-cover" alt="K Coffee banner">
+
+    <div class="absolute inset-0 bg-black/35"></div>
+
+    <div class="relative z-10 h-full flex items-center justify-center px-6 pt-14">
+      <div class="text-center text-white max-w-3xl">
+        <h1 class="text-5xl sm:text-6xl md:text-6xl font-extrabold tracking-tight">
+          Authentic Vietnamese Flavours, Made Fresh
+        </h1>
+        <p class="mt-6 text-base sm:text-lg md:text-xl text-white/90">
+          Traditional dishes, refreshing beverages, and handcrafted desserts — all in one place.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main -->
+  <main id="main" class="flex-1 mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-8 space-y-10">
+
+    <section class="text-left space-y-2">
+      <div class="pt-24">
+        <div class="flex flex-col md:flex-row gap-8">
+          <div>
+            <img src="assets/images/minilogo1.png" alt="HIGH QUALITY ARABICA BEANS">
+            <p class="title1 font-bold">AUTHENTIC
+              <br>VIETNAMESE RECIPES
+            </p>
+            <p class="text-slate-600 max-w-2xl">
+              At Saigon Bistro, we serve authentic Vietnamese dishes inspired by traditional home-style cooking, using
+              carefully selected ingredients and time-honoured recipes.
+            </p>
+          </div>
+          <div>
+            <img src="assets/images/minilogo2.png" alt="HIGH QUALITY ARABICA BEANS">
+            <p class="title2 font-bold">FRESHLY
+              <br>PREPARED DAILY
+            </p>
+            <p class="text-slate-600 max-w-2xl">
+              Every meal is prepared fresh daily by our kitchen team, ensuring consistent quality, rich flavours, and a
+              satisfying dining experience.</p>
+          </div>
+          <div>
+            <img src="assets/images/minilogo3.png" alt="HIGH QUALITY ARABICA BEANS">
+            <p class="title3 font-bold">FOOD,
+              <br>BEVERAGES & DESSERTS
+            </p>
+            <p class="text-slate-600 max-w-2xl">
+              From savoury main dishes to refreshing drinks and sweet Vietnamese desserts, Saigon Bistro offers
+              something for every craving.</p>
+          </div>
+        </div>
+
+        <div class="relative w-full h-[70vh] my-24 overflow-hidden shadow-lg">
+          <img src="assets/images/theme2.png" class="absolute inset-0 w-full h-full object-cover" alt="">
+          <div class="absolute inset-0 z-10">
+            <div class="absolute inset-y-0 left-0 w-full md:w-1/2
+                bg-gradient-to-r from-black/70 via-black/40 to-transparent">
+            </div>
+            <div class="absolute left-8 sm:left-12 top-1/2 -translate-y-1/2
+                max-w-xl text-white text-left">
+              <div class="text-4xl sm:text-3xl font-extrabold mb-6">
+                Celebrating Vietnamese cuisine and culture
+              </div>
+              <p class="text-lg leading-relaxed">
+                Our menu brings together classic Vietnamese street food, traditional beverages, and modern dessert
+                creations, crafted to suit both local and international tastes.
+              </p>
+            </div>
+          </div>
+        </div>
+
+    </section>
+
+
+    <!-- Our Story -->
+    <div id="story" class="">
+      <h2 class="text-2xl font-bold">Our Story</h2>
+      <p class="text-xl">
+        <br>Saigon Bistro is inspired by the vibrant food culture of Vietnam, where meals are more than just nourishment
+        — they are a shared experience.
+        <br><br>Our goal is to bring authentic Vietnamese flavours to a modern dining environment, combining traditional
+        recipes with contemporary service.
+        <br><br>From savoury rice and noodle dishes to refreshing beverages and classic desserts, each item on our menu
+        is designed to reflect the balance of flavour, freshness, and comfort found in Vietnamese cuisine.
+        <br><br>Technology plays a key role in how we serve our customers. Our digital platform allows customers to
+        explore the menu, place orders, and receive support conveniently, enhancing the overall dining experience.
+      </p>
+    </div>
+
+
+    <!-- About Us -->
+    <section id="about" class="py-25">
+      <h2 class="text-2xl font-bold">About Us</h2>
+      <p class="text-xl mt-6 max-w-3xl">
+        Saigon Bistro is a Vietnamese food and beverage brand dedicated to delivering high-quality meals, refreshing drinks, and traditional desserts with convenience and care. We focus on authenticity, consistency, and customer satisfaction.
+      </p>
+    </section>
+
+    <section class="py-32">
+      <h1 class="text-center text-4xl font-bold mt-54 mb-24">Saigon Bistro’s Value Proposition</h1>
+      <div class="flex flex-col md:flex-row gap-8">
+        <div class="flex-1 text-center space-y-3">
+          <img src="assets/images/minilogo4.png" alt="High Quality" class="w-20 h-20 mx-auto">
+          <p class="title1 font-bold">Our ingredients are carefully selected to ensure freshness and authenticity. Each dish reflects the depth of Vietnamese flavours through balanced seasoning, fresh herbs, and traditional preparation methods.</p>
+        </div>
+        <div class="flex-1 text-center space-y-3">
+          <img src="assets/images/minilogo5.png" alt="High Affordability" class="w-20 h-20 mx-auto">
+          <p class="title2 font-bold">Saigon Bistro aims to make quality Vietnamese food accessible to everyone by offering fair pricing without compromising on portion size or taste.</p>
+        </div>
+        <div class="flex-1 text-center space-y-3">
+          <img src="assets/images/minilogo3.png" alt="High Convenience" class="w-20 h-20 mx-auto">
+          <p class="title3 font-bold">Customers can browse our menu, place orders, and access support through our online platform, making it easy to enjoy Vietnamese cuisine anytime.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- <section class="py-12">
+      <div class="mx-auto max-w-6xl py-12 px-4 sm:px-6 lg:px-8 space-y-20">
+        <div class="flex flex-col md:flex-row gap-8 items-center">
+          <div class="flex-1 space-y-4 md:order-1">
+            <p class="text-3xl font-extrabold text-slate-800">HIGH QUALITY</p>
+            <p class="text-base text-slate-600">
+              Our coffee beans come directly from top coffee producing regions, and we have won the gold medal of IIAC
+              for
+              seven consecutive years. Every batch of our coffee is carefully blended by our team of the WBC champions.
+              Our coffee is selected from more than 180 blending formulas that highly match the taste of customers.
+            </p>
+          </div>
+          <div class="flex-1 md:order-2">
+            <img src="assets/images/coffeetgt1.png" alt="High Quality Visual"
+              class="w-full h-auto rounded-xl shadow-lg" />
+          </div>
+        </div>
+
+        <div class="flex flex-col md:flex-row-reverse gap-8 items-center">
+          <div class="flex-1 space-y-4 md:order-1">
+            <p class="text-3xl font-extrabold text-slate-800">HIGH AFFORDABILITY</p>
+            <p class="text-base text-slate-600">
+              We advocate a more convenient and rapid "new retail" experience. Users can purchase, pick up and take out
+              coffee through our mobile app, completely changing the traditional coffee business mode. Experience the
+              ultimate convenience with every cup of coffee carefully crafted and freshly made, just for you.
+            </p>
+          </div>
+          <div class="flex-1 md:order-2">
+            <img src="assets/images/coffeetgt.png" alt="High Affordability Visual"
+              class="w-full h-auto rounded-xl shadow-lg" />
+          </div>
+        </div>
+
+        <div class="flex flex-col md:flex-row gap-8 items-center">
+          <div class="flex-1 space-y-4 md:order-1">
+            <p class="text-3xl font-extrabold text-slate-800">HIGH CONVENIENCE</p>
+            <p class="text-base text-slate-600">
+              Our mobile app and presence on other third-party platforms cover the entire customer purchase process,
+              offering our customers a 100% cashier-less environment. This enhances our customer experience, improves
+              our
+              operating efficiency, and allows us to stay connected with our customers and engage with them anytime,
+              anywhere.
+            </p>
+          </div>
+          <div class="flex-1 md:order-2">
+            <img src="assets/images/coffeetgt2.png" alt="High Convenience Visual"
+              class="w-full h-auto rounded-xl shadow-lg" />
+          </div>
+        </div>
+      </div>
+    </section> -->
+
+  </main>
+
+  <!-- footer -->
+  <footer class="bg-[#1f1a14] text-slate-300 pt-20 pb-8 px-4 sm:px-6 lg:px-8">
+    <div class="mx-auto max-w-6xl">
+
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-12 sm:gap-16 md:gap-20">
+        <div class="col-span-1 md:col-span-2 space-y-4 flex flex-col items-start">
+          <h2 class="text-xl font-bold text-white/90 mb-4">Saigon Bistro</h2>
+          <div class="flex space-x-4 pt-2">
+            <img class="w-6 h-6 cursor-pointer opacity-75 hover:opacity-100 transition" src="assets/images/ig-icon.png"
+              alt="Instagram" />
+            <img class="w-6 h-6 cursor-pointer opacity-75 hover:opacity-100 transition" src="assets/images/fb-icon.png"
+              alt="Facebook" />
+          </div>
+        </div>
+
+        <div class="space-y-4">
+          <h2 class="text-xl font-bold text-white/90 mb-4">COMPANY</h2>
+          <ul class="space-y-2 text-sm">
+            <li><a href="index.html" class="hover:text-white transition">Home</a></li>
+            <li><a href="#about" class="hover:text-white transition">About Us</a></li>
+            <li><a href="#" class="hover:text-white transition">Career</a></li>
+            <li><a href="#" class="hover:text-white transition">Privacy Policy</a></li>
+          </ul>
+        </div>
+
+        <div class="space-y-4">
+          <h2 class="text-xl font-bold text-white/90 mb-4">GET IN TOUCH</h2>
+          <ul class="space-y-2 text-sm">
+            <li>+65 1234 5678</li>
+            <li>contact@saigonbistro.com</li>
+          </ul>
+        </div>
+      </div>
+
+      <hr class="w-full h-px my-10 border-none bg-white/10" />
+
+      <p class="text-center text-sm text-slate-400">
+        © 2025 saigonbistro.com — All Rights Reserved
+      </p>
+    </div>
+  </footer>
+
+  <script type="module" src="./js/index.js"></script>
+</body>
+
+</html>

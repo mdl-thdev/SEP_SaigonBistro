@@ -1,0 +1,140 @@
+<!-- SEP_SaigonBistro/docs/login/login.html -->
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Saigon Bistro - Login</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../css/styles.css" />
+
+</head>
+
+
+<body class="min-h-screen flex flex-col bg-white text-slate-900">
+    <!-- Header -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-black/60 backdrop-blur">
+        <div
+            class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 h-14 grid grid-cols-[auto_1fr_auto] items-center gap-8 text-white">
+            <div class="flex items-center gap-2">
+                <a href="../index.html" class="font-extrabold tracking-tight">Saigon Bistro</a>
+            </div>
+
+            <nav class="hidden sm:flex items-center justify-center gap-1 text-sm font-semibold" aria-label="Primary">
+                <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="../index.html">Home</a>
+                <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="../index.html#story">Our Story</a>
+                <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="../menu/menu.html">Menu</a>
+                <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="../orders/orderStatus.html">Order</a>
+                <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="../index.html#about">About Us</a>
+
+                <a id="adminDashboardLink" href="../admin/dashboard.html"
+                    class="hidden rounded-lg px-3 py-2 hover:bg-white/10 font-semibold">
+                    Dashboard
+                </a>
+            </nav>
+
+            <!-- Right: Auth-->
+            <div class="hidden sm:flex items-center gap-2 justify-end" id="authArea">
+                <div id="authLoggedIn" class="hidden items-center gap-2">
+                    <span id="welcomeUser" class="text-sm font-semibold text-white/90"></span>
+                    <button id="logoutBtn" class="rounded-xl px-3 py-2 text-sm font-semibold hover:bg-white/10">
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+
+    <!-- Main -->
+    <main id="main" class="flex-1 flex items-center justify-center px-4">
+        <section class="bg-white rounded-2xl shadow-lg p-8">
+            <h1 class="text-2xl font-bold text-center mb-6">Login</h1>
+            <div id="loginNotice"
+                class="hidden mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                <span id="loginNoticeText"></span>
+            </div>
+
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label class="text-sm font-semibold" for="loginEmail">Email</label>
+                    <input id="loginEmail" type="email" autocomplete="off"
+                        class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:ring-2 focus:ring-slate-900"
+                        placeholder="you@example.com" required />
+                </div>
+                <div>
+                    <label class="text-sm font-semibold" for="loginPassword">Password</label>
+                    <div class="mt-1 relative">
+                        <input id="loginPassword" type="password" autocomplete="off"
+                            class="w-full rounded-xl border border-slate-200 px-3 py-2 pr-20 outline-none focus:ring-2 focus:ring-slate-900"
+                            placeholder="Your password" required />
+                        <button type="button" id="togglePassword"
+                            class="absolute right-2 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-600 hover:text-slate-900">
+                            Show
+                        </button>
+                    </div>
+                </div>
+                <button type="submit"
+                    class="mt-2 w-full rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus:ring-slate-900 focus-visible:ring-offset-2">
+                    Login
+                </button>
+
+                <p class="text-center text-sm text-slate-600">
+                    Don’t have an account?
+                    <a href="../signup/signup.html" class="font-semibold text-slate-900 hover:underline">
+                        Sign up
+                    </a>
+                </p>
+            </form>
+        </section>
+    </main>
+
+
+    <!-- footer -->
+    <footer class="bg-[#1f1a14] text-slate-300 pt-20 pb-8 px-4 sm:px-6 lg:px-8">
+        <div class="mx-auto max-w-6xl">
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-12 sm:gap-16 md:gap-20">
+                <div class="col-span-1 md:col-span-2 space-y-4 flex flex-col items-start">
+                    <h2 class="text-xl font-bold text-white/90 mb-4">Saigon Bistro</h2>
+                    <div class="flex space-x-4 pt-2">
+                        <img class="w-6 h-6 cursor-pointer opacity-75 hover:opacity-100 transition"
+                            src="../assets/images/ig-icon.png" alt="Instagram" />
+                        <img class="w-6 h-6 cursor-pointer opacity-75 hover:opacity-100 transition"
+                            src="../assets/images/fb-icon.png" alt="Facebook" />
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <h2 class="text-xl font-bold text-white/90 mb-4">COMPANY</h2>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="../index.html" class="hover:text-white transition">Home</a></li>
+                        <li><a href="../index.html#about" class="hover:text-white transition">About Us</a></li>
+                        <li><a href="#" class="hover:text-white transition">Career</a></li>
+                        <li><a href="#" class="hover:text-white transition">Privacy Policy</a></li>
+                    </ul>
+                </div>
+
+                <div class="space-y-4">
+                    <h2 class="text-xl font-bold text-white/90 mb-4">GET IN TOUCH</h2>
+                    <ul class="space-y-2 text-sm">
+                        <li>+65 1234 5678</li>
+                        <li>contact@saigonbistro.com</li>
+                    </ul>
+                </div>
+            </div>
+            <hr class="w-full h-px my-10 border-none bg-white/10" />
+            <p class="text-center text-sm text-slate-400">
+                © 2025 Saigon Bistro — All Rights Reserved
+            </p>
+        </div>
+    </footer>
+
+
+    <script type="module" src="./login.js"></script>
+</body>
+
+</html>
