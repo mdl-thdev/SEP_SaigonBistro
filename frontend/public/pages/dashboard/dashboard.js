@@ -1,4 +1,4 @@
-// SEP_SaigonBistro/docs/admin/dashboard.js
+// SEP_SaigonBistro/frontend/public/pages/dashboard/dashboard.js
 
 import { initAuthUI, getAuthUser as readAuthUser } from "../../js/auth.js";
 

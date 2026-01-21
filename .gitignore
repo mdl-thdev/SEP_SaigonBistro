@@ -32,3 +32,6 @@ build/
 
 # === Supabase / Backend specifics ===
 supabase/.temp/
+
+# ========
+scripts/create-users.js

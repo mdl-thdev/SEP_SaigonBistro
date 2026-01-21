@@ -1,4 +1,4 @@
-<!-- SEP_SaigonBistro/docs/login/login.html -->
+<!-- SEP_SaigonBistro/frontend/pages/login/login.html -->
 
 <!doctype html>
 <html lang="en">
@@ -9,7 +9,7 @@
     <title>Saigon Bistro - Login</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="../css/styles.css" />
+    <link rel="stylesheet" href="/styles/main.css" />
 
 </head>
 
@@ -20,17 +20,17 @@
         <div
             class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 h-14 grid grid-cols-[auto_1fr_auto] items-center gap-8 text-white">
             <div class="flex items-center gap-2">
-                <a href="../index.html" class="font-extrabold tracking-tight">Saigon Bistro</a>
+                <a href="/index.html" class="font-extrabold tracking-tight">Saigon Bistro</a>
             </div>
 
             <nav class="hidden sm:flex items-center justify-center gap-1 text-sm font-semibold" aria-label="Primary">
-                <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="../index.html">Home</a>
-                <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="../index.html#story">Our Story</a>
-                <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="../menu/menu.html">Menu</a>
-                <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="../orders/orderStatus.html">Order</a>
-                <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="../index.html#about">About Us</a>
+                <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="/index.html">Home</a>
+                <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="/index.html#story">Our Story</a>
+                <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="/pages/menu/menu.html">Menu</a>
+                <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="/pages/orders/orderStatus.html">Order</a>
+                <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="/pages/index.html#about">About Us</a>
 
-                <a id="adminDashboardLink" href="../admin/dashboard.html"
+                <a id="adminDashboardLink" href="/pages/dashboard/dashboard.html"
                     class="hidden rounded-lg px-3 py-2 hover:bg-white/10 font-semibold">
                     Dashboard
                 </a>
@@ -102,9 +102,9 @@
                     <h2 class="text-xl font-bold text-white/90 mb-4">Saigon Bistro</h2>
                     <div class="flex space-x-4 pt-2">
                         <img class="w-6 h-6 cursor-pointer opacity-75 hover:opacity-100 transition"
-                            src="../assets/images/ig-icon.png" alt="Instagram" />
+                            src="/assets/images/ig-icon.png" alt="Instagram" />
                         <img class="w-6 h-6 cursor-pointer opacity-75 hover:opacity-100 transition"
-                            src="../assets/images/fb-icon.png" alt="Facebook" />
+                            src="/assets/images/fb-icon.png" alt="Facebook" />
                     </div>
                 </div>
 
@@ -134,7 +134,7 @@
     </footer>
 
 
-    <script type="module" src="./login.js"></script>
+    <script type="module" src="/pages/login/login.js"></script>
 </body>
 
 </html>

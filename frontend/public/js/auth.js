@@ -1,4 +1,4 @@
-// SEP_SaigonBistro/docs/js/auth.js
+// SEP_SaigonBistro/frontend/public/js/auth.js
 
 const AUTH_KEYS = ["saigonbistro_user", "currentUser"];
 
