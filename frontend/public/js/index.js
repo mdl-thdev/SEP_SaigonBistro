@@ -2,6 +2,15 @@
 
 import { supabase } from "./supabaseClient.js";
 
+import { initAuthUI } from "./auth.js";
+
+document.addEventListener("DOMContentLoaded", async () => {
+  await initAuthUI({
+    redirectOnLogout: "/index.html",
+    redirectAdminStaffTo: "/pages/dashboard/dashboard.html",
+  });
+});
+
 export async function initAuthUI({ redirectOnLogout } = {}) {
   const { data: { session } } = await supabase.auth.getSession();
 
@@ -29,20 +38,6 @@ export async function initAuthUI({ redirectOnLogout } = {}) {
     if (!session && redirectOnLogout) window.location.href = redirectOnLogout;
   });
 }
-
-
-
-
-// import { initAuthUI, getAuthUser } from "./auth.js";
-
-// document.addEventListener("DOMContentLoaded", () => {
-//   initAuthUI({ redirectOnLogout: "/index.html" });
-
-//   const user = getAuthUser();
-//   if (user?.role === "admin") {
-//     window.location.href = "/pages/admin-dashboard/adminDashboard.html";
-//   }
-// });
 
 
 

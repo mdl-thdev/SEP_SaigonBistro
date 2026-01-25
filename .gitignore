@@ -6,6 +6,7 @@ node_modules/
 .env
 .env.*
 !.env.example
+backend/.env
 
 # === macOS system files ===
 .DS_Store
@@ -35,3 +36,4 @@ supabase/.temp/
 
 # ========
 scripts/create-users.js
+scripts/seed.js

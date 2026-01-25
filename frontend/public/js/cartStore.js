@@ -1,4 +1,4 @@
-// SEP_SaigonBistro/docs/js/cartStore.js
+// SEP_SaigonBistro/frontend/public/js/cartStore.js
 
 const CART_KEY = "sai_cart";
 const LAST_ORDER_KEY = "saigonbistro_last_order";

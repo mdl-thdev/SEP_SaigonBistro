@@ -1,4 +1,4 @@
-/* // SEP_SaigonBistro/docs/css/styles.css */
+/* // SEP_SaigonBistro/frontend/public/styles/main.css */
 
 /* small additions only; Tailwind handles most styling */
 html { scroll-behavior: smooth; }
@@ -7,4 +7,25 @@ html { scroll-behavior: smooth; }
 
 html, body { height: 100%; }
 img { max-width: 100%; height: auto; }
+
+
+#sidebar.collapsed {
+  width: 72px;
+}
+
+#sidebar.collapsed .sidebar-title,
+#sidebar.collapsed .sidebar-label {
+  display: none;
+}
+
+#sidebar.collapsed nav button {
+  justify-content: center;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+.dash-tab.is-active {
+  background-color: rgba(0, 0, 0, 0.08);
+  font-weight: 600;
+}
 

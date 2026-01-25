@@ -1,4 +1,4 @@
-// SEP_SaigonBistro/docs/signup/signup.js
+// SEP_SaigonBistro/frontend/public/pages/signup/signup.js
 import { signup } from "../../js/api.js";
 
 document.addEventListener("DOMContentLoaded", () => {

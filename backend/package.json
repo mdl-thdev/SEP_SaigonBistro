@@ -1,0 +1,28 @@
+{
+  "name": "api-starter",
+  "version": "1.0.0",
+  "description": "A simple Node.js API starter for Render deployment",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.90.1",
+    "bcryptjs": "^3.0.3",
+    "dotenv": "^17.2.3",
+    "express": "^4.22.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mdl-thdev/SEP_SaigonBistro.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/mdl-thdev/SEP_SaigonBistro/issues"
+  },
+  "homepage": "https://github.com/mdl-thdev/SEP_SaigonBistro#readme"
+}

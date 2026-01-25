@@ -1,24 +1,12 @@
 // SEP_SaigonBistro/frontend/public/js/auth.js
 
-const AUTH_KEYS = ["saigonbistro_user", "currentUser"];
+import { supabase } from "./supabaseClient.js";
+import { getMe } from "./api.js";
 
-export function getAuthUser() {
-  for (const key of AUTH_KEYS) {
-    try {
-      const v = JSON.parse(localStorage.getItem(key) || "null");
-      if (v) return v;
-    } catch {}
-  }
-  return null;
-}
-
-export function clearAuthUser() {
-  for (const key of AUTH_KEYS) localStorage.removeItem(key);
-}
-
-export function initAuthUI(options = {}) {
+export async function initAuthUI(options = {}) {
   const {
     redirectOnLogout = "/index.html",
+    redirectAdminStaffTo = null, // e.g. "/pages/dashboard/dashboard.html"
     hideAuthAreaIfMissing = false,
   } = options;
 
@@ -28,47 +16,96 @@ export function initAuthUI(options = {}) {
   const welcomeUser = document.getElementById("welcomeUser");
   const logoutBtn = document.getElementById("logoutBtn");
   const adminDashboardLink = document.getElementById("adminDashboardLink");
-
-  // query inside init (DOM is ready)
   const orderNavLink = document.getElementById("orderNavLink");
-
-  const user = getAuthUser();
 
   if (!authArea && hideAuthAreaIfMissing) return;
 
-  // default: hide dashboard
-  adminDashboardLink?.classList.add("hidden");
+  async function render() {
+    const { data: { session } } = await supabase.auth.getSession();
 
-  if (user) {
-    // logged in UI
+    // default hide
+    adminDashboardLink?.classList.add("hidden");
+
+    if (!session?.user) {
+      authLoggedOut?.classList.remove("hidden");
+      authLoggedIn?.classList.add("hidden");
+      orderNavLink?.classList.remove("hidden");
+      return;
+    }
+
+    // logged in
     authLoggedOut?.classList.add("hidden");
     authLoggedIn?.classList.remove("hidden");
 
-    if (welcomeUser) {
-      const displayName = user.name || user.email || "Customer";
-      welcomeUser.textContent = `Hi, ${displayName}`;
+    // fetch profile/role
+    let role = "customer";
+    let displayName = session.user.email || "Customer";
+
+    try {
+      const me = await getMe();
+      // adjust these fields if your backend JSON is different
+      role = me?.profile?.role || me?.role || role;
+      displayName = me?.profile?.name || me?.name || displayName;
+
+      if (redirectAdminStaffTo && (role === "admin" || role === "staff")) {
+        window.location.href = redirectAdminStaffTo;
+        return;
+      }
+    } catch (e) {
+      // if getMe fails, still stay logged in, just don't show admin features
+      console.warn("getMe failed:", e.message);
     }
 
-    // Role-based nav
-    if (user.role === "admin") {
+    if (welcomeUser) welcomeUser.textContent = `Hi, ${displayName}`;
+
+    if (role === "admin") {
       adminDashboardLink?.classList.remove("hidden");
       orderNavLink?.classList.add("hidden");
     } else {
-      adminDashboardLink?.classList.add("hidden");
       orderNavLink?.classList.remove("hidden");
     }
-  } else {
-    // logged out UI
-    authLoggedOut?.classList.remove("hidden");
-    authLoggedIn?.classList.add("hidden");
-
-    adminDashboardLink?.classList.add("hidden");
-    orderNavLink?.classList.remove("hidden");
   }
 
   // logout
-  logoutBtn?.addEventListener("click", () => {
-    clearAuthUser();
+  logoutBtn?.addEventListener("click", async () => {
+    await supabase.auth.signOut();
     window.location.href = redirectOnLogout;
   });
+
+  await render();
+
+  // keep UI updated
+  supabase.auth.onAuthStateChange(async (_event, _session) => {
+    await render();
+  });
+}
+
+export async function getAuthUser() {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session?.user) return null;
+
+  // token for your backend Authorization: Bearer <token>
+  const token = session.access_token;
+
+  // role/name usually comes from your backend profile (getMe)
+  let role = "customer";
+  let name = session.user.email || "Customer";
+
+  try {
+    const me = await getMe();
+    role = me?.profile?.role || me?.role || role;
+    name = me?.profile?.name || me?.name || name;
+  } catch (e) {
+    // if backend fails, still return token so protected endpoints may work
+    console.warn("getMe failed in getAuthUser:", e.message);
+  }
+
+  return {
+    id: session.user.id,
+    email: session.user.email,
+    token,
+    role,
+    name,
+  };
 }

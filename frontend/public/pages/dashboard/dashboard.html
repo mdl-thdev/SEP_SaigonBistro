@@ -9,38 +9,39 @@
     <title>Saigon Bistro - Admin Dashboard</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="../css/styles.css" />
+    <link rel="stylesheet" href="/styles/main.css" />
+
 </head>
 
 
 <body class="min-h-screen flex flex-col bg-white text-slate-900">
     <!-- Header -->
-    <header class="fixed top-0 left-0 right-0 z-50 bg-black/60 backdrop-blur">
+    <header class="fixed top-0 left-0 right-0 z-50 bg-white/60 backdrop-blur border-b border-gray-200">
         <div
-            class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 h-14 grid grid-cols-[auto_1fr_auto] items-center gap-8 text-white">
+            class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 h-14 grid grid-cols-[auto_1fr_auto] items-center gap-8 text-black">
             <div class="flex items-center gap-2">
                 <a href="../index.html" class="font-extrabold tracking-tight">Saigon Bistro</a>
             </div>
 
             <nav class="hidden sm:flex items-center justify-center gap-1 text-sm font-semibold" aria-label="Primary">
-                <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="/index.html">Home</a>
-                <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="/index.html#story">Our Story</a>
-                <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="/menu/menu.html">Menu</a>
+                <a class="rounded-lg px-3 py-2 hover:bg-black/10" href="/index.html">Home</a>
+                <a class="rounded-lg px-3 py-2 hover:bg-black/10" href="/index.html#story">Our Story</a>
+                <a class="rounded-lg px-3 py-2 hover:bg-black/10" href="/menu/menu.html">Menu</a>
 
                 <a id="adminDashboardLink" href="/pages/dashboard/dashboard.html"
-                    class="rounded-lg px-3 py-2 hover:bg-white/10 font-semibold">
+                    class="rounded-lg px-3 py-2 hover:bg-black/10 font-semibold">
                     Dashboard
                 </a>
 
-                <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="/index.html#about">About Us</a>
+                <a class="rounded-lg px-3 py-2 hover:bg-black/10" href="/index.html#about">About Us</a>
             </nav>
 
             <!-- Right: Auth-->
             <div class="hidden sm:flex items-center gap-2 justify-end" id="authArea">
 
                 <div id="authLoggedIn" class=" flex items-center gap-2">
-                    <span id="welcomeUser" class="text-sm font-semibold text-white/90"></span>
-                    <button id="logoutBtn" class="rounded-xl px-3 py-2 text-sm font-semibold hover:bg-white/10">
+                    <span id="welcomeUser" class="text-sm font-semibold text-slate-900"></span>
+                    <button id="logoutBtn" class="rounded-xl px-3 py-2 text-sm font-semibold hover:bg-black/10">
                         Logout
                     </button>
                 </div>
@@ -50,51 +51,103 @@
 
 
     <!-- Main -->
-    <main id="main" class="flex-1 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-8 space-y-10">
-        <h1 class="text-3xl font-extrabold text-center mb-10">Admin – Manage Orders</h1>
+    <main class="flex-1 pt-14">
+        <!-- pt-14 matches header h-14 -->
+        <div class="flex min-h-[calc(100vh-56px)]">
 
-        <div id="dashboard" class="space-y-4">
-            <div class="p-4 border rounded-xl bg-slate-50 text-slate-600">
-                Loading orders...
-            </div>
+            <!-- Sidebar (full-height rail) -->
+            <aside id="sidebar" class="w-64 shrink-0 bg-white text-black sticky top-14 h-[calc(100vh-56px)]
+             border-r border-gray-200 transition-all duration-200">
+
+                <!-- Header row inside sidebar -->
+                <div class="px-4 py-4 flex items-center justify-between">
+                    <span class="font-bold text-lg sidebar-title">Dashboard</span>
+
+                    <!-- Toggle -->
+                    <button id="sidebarToggle" class="p-2 rounded-lg hover:bg-black/5" aria-label="Collapse sidebar"
+                        type="button">
+                        <!-- simple chevron -->
+                        <span id="sidebarChevron" class="inline-block transition-transform duration-200">⟨</span>
+                    </button>
+                </div>
+
+                <!-- MOBILE: horizontal tabs, DESKTOP: vertical menu -->
+                <nav class="flex md:flex-col md:space-y-1 gap-2 md:gap-0 px-2 pb-4 overflow-x-auto md:overflow-visible">
+
+                    <button class="dash-tab shrink-0 md:w-full flex items-center gap-3 text-left px-3 py-2 rounded-lg hover:bg-black/5 transition" data-tab="orders">
+                        <img src="/assets/images/vieworders.png" alt="View Orders" class="w-5 h-5 opacity-80" />
+                        <span class="sidebar-label">View Orders</span>
+                    </button>
+
+                    <button class="dash-tab shrink-0 md:w-full flex items-center gap-3 text-left px-3 py-2 rounded-lghover:bg-black/5 transition" data-tab="tickets">
+                        <img src="/assets/images/tickets.png" alt="Help Desk Tickets" class="w-5 h-5 opacity-80" />
+                        <span class="sidebar-label">Help Desk Tickets</span>
+                    </button>
+
+                    <button class="dash-tab shrink-0 md:w-full flex items-center gap-3 text-left px-3 py-2 rounded-lg hover:bg-black/5 transition" data-tab="staff">
+                        <img src="/assets/images/viewstaffs.png" alt="View Staffs" class="w-5 h-5 opacity-80" />
+                        <span class="sidebar-label">View Staffs</span>
+                    </button>
+
+                    <button class="dash-tab shrink-0 md:w-full flex items-center gap-3 text-left px-3 py-2 rounded-lg hover:bg-black/5 transition" data-tab="reports">
+                        <img src="/assets/images/viewreports.png" alt="Reports" class="w-5 h-5 opacity-80" />
+                        <span class="sidebar-label">Reports</span>
+                    </button>
+                </nav>
+            </aside>
+
+            <!-- Content area -->
+            <section class="flex-1 min-w-0 bg-white">
+                <!-- keep content nicely sized while sidebar stays full-width -->
+                <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-6 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h1 id="pageTitle" class="text-2xl font-extrabold">View Orders</h1>
+                        <div id="pageActions" class="flex items-center gap-2"></div>
+                    </div>
+
+                    <div id="pageBody" class="space-y-4">
+                        <div class="p-4 border rounded-xl bg-slate-50 text-slate-600">Loading...</div>
+                    </div>
+                </div>
+            </section>
         </div>
     </main>
 
 
     <!-- footer -->
-    <footer class="bg-[#1f1a14] text-slate-300 pt-20 pb-8 px-4 sm:px-6 lg:px-8">
+    <footer class="bg-gray-100 text-black pt-20 pb-8 px-4 sm:px-6 lg:px-8 border-t border-black/10">
         <div class="mx-auto max-w-6xl">
 
             <div class="grid grid-cols-1 md:grid-cols-4 gap-12 sm:gap-16 md:gap-20">
                 <div class="col-span-1 md:col-span-2 space-y-4 flex flex-col items-start">
-                    <h2 class="text-xl font-bold text-white/90 mb-4">SaigonBistro</h2>
+                    <h2 class="text-xl font-bold text-black/90 mb-4">SaigonBistro</h2>
                     <div class="flex space-x-4 pt-2">
                         <img class="w-6 h-6 cursor-pointer opacity-75 hover:opacity-100 transition"
-                            src="../assets/images/ig-icon.png" alt="Instagram" />
+                            src="/assets/images/ig-icon.png" alt="Instagram" />
                         <img class="w-6 h-6 cursor-pointer opacity-75 hover:opacity-100 transition"
-                            src="../assets/images/fb-icon.png" alt="Facebook" />
+                            src="/assets/images/fb-icon.png" alt="Facebook" />
                     </div>
                 </div>
 
                 <div class="space-y-4">
-                    <h2 class="text-xl font-bold text-white/90 mb-4">COMPANY</h2>
+                    <h2 class="text-xl font-bold text-black/90 mb-4">COMPANY</h2>
                     <ul class="space-y-2 text-sm">
-                        <li><a href="../index.html" class="hover:text-white transition">Home</a></li>
-                        <li><a href="../index.html#about" class="hover:text-white transition">About Us</a></li>
-                        <li><a href="#" class="hover:text-white transition">Career</a></li>
-                        <li><a href="#" class="hover:text-white transition">Privacy Policy</a></li>
+                        <li><a href="../index.html" class="hover:text-black transition">Home</a></li>
+                        <li><a href="../index.html#about" class="hover:text-black transition">About Us</a></li>
+                        <li><a href="#" class="hover:text-black transition">Career</a></li>
+                        <li><a href="#" class="hover:text-black transition">Privacy Policy</a></li>
                     </ul>
                 </div>
 
                 <div class="space-y-4">
-                    <h2 class="text-xl font-bold text-white/90 mb-4">GET IN TOUCH</h2>
+                    <h2 class="text-xl font-bold text-black/90 mb-4">GET IN TOUCH</h2>
                     <ul class="space-y-2 text-sm">
                         <li>+65 1234 5678</li>
                         <li>contact@saigonbistro.com</li>
                     </ul>
                 </div>
             </div>
-            <hr class="w-full h-px my-10 border-none bg-white/10" />
+            <hr class="w-full h-px my-10 bg-black/10" />
             <p class="text-center text-sm text-slate-400">
                 © 2025 SaigonBistro.com — All Rights Reserved
             </p>

@@ -1,6 +1,7 @@
 {
   "name": "sep-saigonbistro-root",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev:frontend\"",
     "dev:frontend": "npx http-server frontend/public -p 5173 -c-1"

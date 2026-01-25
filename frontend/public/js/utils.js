@@ -1,4 +1,4 @@
-// SEP_SaigonBistro/docs/js/utils.js
+// SEP_SaigonBistro/frontend/public/js/utils.js
 
 export function formatMoney(amount) {
   const n = Number(amount) || 0;
