@@ -1,0 +1,84 @@
+<!-- SEP_SaigonBistro/frontend/public/pages/help/caseDetail.html -->
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Case Details</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/styles/main.css" />
+</head>
+
+<body class="min-h-screen bg-white text-slate-900 flex flex-col">
+    <main class="flex-1 pt-20 px-4">
+        <div class="mx-auto max-w-3xl">
+            <a href="/pages/help/help.html?tab=cases" class="text-sm font-semibold underline">
+                ← Back to Your cases
+            </a>
+            <div id="notice" class="hidden mt-6 rounded-xl border px-4 py-3 text-sm"></div>
+
+            <section class="mt-6 bg-white rounded-2xl shadow-lg border border-slate-100 p-6">
+                <h1 class="text-2xl font-extrabold">Case Details</h1>
+                <div id="caseMeta" class="mt-4 text-sm text-slate-700"></div>
+                <div class="mt-4">
+                    <h2 class="text-sm font-bold text-slate-900">Description</h2>
+                    <p id="caseDesc" class="mt-2 whitespace-pre-wrap text-slate-700"></p>
+
+                </div>
+                <!-- Conversation -->
+                <div class="mt-8">
+                    <h2 class="text-lg font-bold">Conversation</h2>
+                    <div id="commentsList" class="mt-4 space-y-4"></div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- footer -->
+    <footer class="bg-[#1f1a14] text-slate-300 pt-20 pb-8 px-4 sm:px-6 lg:px-8">
+        <div class="mx-auto max-w-6xl">
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-12 sm:gap-16 md:gap-20">
+                <div class="col-span-1 md:col-span-2 space-y-4 flex flex-col items-start">
+                    <h2 class="text-xl font-bold text-white/90 mb-4">Saigon Bistro</h2>
+                    <div class="flex space-x-4 pt-2">
+                        <img class="w-6 h-6 cursor-pointer opacity-75 hover:opacity-100 transition"
+                            src="/assets/images/ig-icon.png" alt="Instagram" />
+                        <img class="w-6 h-6 cursor-pointer opacity-75 hover:opacity-100 transition"
+                            src="/assets/images/fb-icon.png" alt="Facebook" />
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <h2 class="text-xl font-bold text-white/90 mb-4">COMPANY</h2>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="/index.html" class="hover:text-white transition">Home</a></li>
+                        <li><a href="#about" class="hover:text-white transition">About Us</a></li>
+                        <li><a href="#" class="hover:text-white transition">Career</a></li>
+                        <li><a href="#" class="hover:text-white transition">Privacy Policy</a></li>
+                    </ul>
+                </div>
+
+                <div class="space-y-4">
+                    <h2 class="text-xl font-bold text-white/90 mb-4">GET IN TOUCH</h2>
+                    <ul class="space-y-2 text-sm">
+                        <li>+65 1234 5678</li>
+                        <li>contact@saigonbistro.com</li>
+                    </ul>
+                </div>
+            </div>
+
+            <hr class="w-full h-px my-10 border-none bg-white/10" />
+
+            <p class="text-center text-sm text-slate-400">
+                © 2025 saigonbistro.com — All Rights Reserved
+            </p>
+        </div>
+    </footer>
+
+    <script type="module" src="/pages/help/caseDetail.js"></script>
+</body>
+
+</html>

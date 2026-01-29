@@ -43,9 +43,15 @@ export async function initAuthUI(options = {}) {
 
     try {
       const me = await getMe();
-      // adjust these fields if your backend JSON is different
-      role = me?.profile?.role || me?.role || role;
-      displayName = me?.profile?.name || me?.name || displayName;
+      // role from backend profile
+      role = me?.profile?.role ?? role;
+      // name from backend profile
+      displayName =
+        me?.profile?.display_name ||  
+        me?.profile?.display_name ||  
+        me?.profile?.name ||          
+        me?.profile?.displayName ||   
+        displayName;
 
       if (redirectAdminStaffTo && (role === "admin" || role === "staff")) {
         window.location.href = redirectAdminStaffTo;
@@ -55,7 +61,7 @@ export async function initAuthUI(options = {}) {
       // if getMe fails, still stay logged in, just don't show admin features
       console.warn("getMe failed:", e.message);
     }
-
+    // update UI
     if (welcomeUser) welcomeUser.textContent = `Hi, ${displayName}`;
 
     if (role === "admin") {

@@ -6,6 +6,7 @@ const { TICKET_STATUSES } = require("../../utils/constants");
 
 const router = express.Router();
 
+// API (customers): POST Create Ticket
 router.post("/", requireAuth, async (req, res) => {
   try {
     const { category, subject, description, customer_phone, order_id } = req.body || {};
@@ -49,11 +50,13 @@ router.post("/", requireAuth, async (req, res) => {
   }
 });
 
+// API (customers): GET view tickets
 router.get("/mine", requireAuth, async (req, res) => {
   try {
     const { data, error } = await req.sb
       .from("tickets")
       .select("id, ticket_number, category, subject, status, owner_id, created_at, updated_at")
+      .eq("customer_id", req.user.id)
       .order("created_at", { ascending: false });
 
     if (error) return res.status(400).json({ message: error.message });
@@ -64,16 +67,65 @@ router.get("/mine", requireAuth, async (req, res) => {
   }
 });
 
+// GET customer ticket detail + comments
+router.get("/mine/:id", requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // 1) Get ticket (must belong to customer)
+    const { data: ticket, error: tErr } = await req.sb
+      .from("tickets")
+      .select("id, ticket_number, category, subject, description, status, created_at, updated_at")
+      .eq("id", id)
+      .eq("customer_id", req.user.id)
+      .single();
+
+    if (tErr || !ticket) {
+      return res.status(404).json({ message: "Ticket not found" });
+    }
+
+    // 2) Get comments for this ticket
+    const { data: comments, error: cErr } = await req.sb
+      .from("ticket_comments")
+      .select("id, author_role, author_email, message, created_at")
+      .eq("ticket_id", id)
+      .order("created_at", { ascending: true });
+
+    if (cErr) {
+      console.error("TICKET COMMENTS ERROR:", cErr);
+    }
+
+    res.json({
+      success: true,
+      ticket,
+      comments: Array.isArray(comments) ? comments : [],
+    });
+  } catch (err) {
+    console.error("MY TICKET DETAIL ERROR:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
+// Admin/Staff APIs
+// GET View all Tickets
 router.get("/", requireStaffOrAdmin, async (req, res) => {
   try {
     const { data, error } = await req.sb
       .from("tickets")
-      .select(
-        "id, ticket_number, customer_name, customer_email, customer_phone, order_id, category, subject, status, owner_id, created_at, updated_at"
-      )
+      .select("id, ticket_number, customer_name, customer_email, customer_phone, order_id, category, subject, status, owner_id, created_at, updated_at")
       .order("created_at", { ascending: false });
 
-    if (error) return res.status(400).json({ message: error.message });
+    if (error) {
+      console.error("TICKETS SUPABASE ERROR:", {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+      });
+      return res.status(400).json({ message: error.message });
+    }
+
     res.json({ success: true, tickets: data });
   } catch (err) {
     console.error("GET TICKETS ERROR:", err);
@@ -81,6 +133,56 @@ router.get("/", requireStaffOrAdmin, async (req, res) => {
   }
 });
 
+// GET View Ticket Details
+router.get("/:id", requireStaffOrAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const { data: ticket, error: tErr } = await req.sb
+      .from("tickets")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (tErr) return res.status(404).json({ message: tErr.message || "Ticket not found" });
+
+    // comments table 
+    let comments = [];
+    try {
+      const { data: cData, error: cErr } = await req.sb
+        .from("ticket_comments")
+        .select("id, ticket_id, author_role, author_email, message, created_at")
+        .eq("ticket_id", id)
+        .order("created_at", { ascending: true });
+
+      if (!cErr && Array.isArray(cData)) comments = cData;
+    } catch {
+      // ignore if table doesn't exist
+    }
+
+    // feedback table 
+    let feedback = null;
+    try {
+      const { data: fData, error: fErr } = await req.sb
+        .from("ticket_feedback")
+        .select("id, ticket_id, stars, comment, created_at")
+        .eq("ticket_id", id)
+        .single();
+
+      if (!fErr && fData) feedback = fData;
+    } catch {
+      // ignore if table doesn't exist
+    }
+
+    res.json({ success: true, ticket, comments, feedback });
+  } catch (err) {
+    console.error("GET TICKET DETAIL ERROR:", err);
+    res.status(500).json({ message: "Failed to load ticket detail" });
+  }
+});
+
+
+// PATCH Assign Ticket to Self
 router.patch("/:id/assign-self", requireStaffOrAdmin, async (req, res) => {
   try {
     const { id } = req.params;
@@ -109,6 +211,7 @@ router.patch("/:id/assign-self", requireStaffOrAdmin, async (req, res) => {
   }
 });
 
+// PATCH Update Ticket Status
 router.patch("/:id/status", requireStaffOrAdmin, async (req, res) => {
   try {
     const { id } = req.params;
@@ -133,6 +236,8 @@ router.patch("/:id/status", requireStaffOrAdmin, async (req, res) => {
   }
 });
 
+
+// PATCH Admin assign Ticket to Staff
 router.patch("/:id/assign-staff", requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;

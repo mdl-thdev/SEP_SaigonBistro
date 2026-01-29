@@ -15,6 +15,13 @@ const app = express();
 app.use(corsMiddleware);
 app.use(express.json());
 
+app.use((req, res, next) => {
+  if (req.path.startsWith("/api/")) {
+    console.log(`[API] ${req.method} ${req.path}`);
+  }
+  next();
+});
+
 app.use("/api", apiRoutes);
 
 module.exports = app;
