@@ -20,13 +20,13 @@
         <div
             class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 h-14 grid grid-cols-[auto_1fr_auto] items-center gap-8 text-black">
             <div class="flex items-center gap-2">
-                <a href="../index.html" class="font-extrabold tracking-tight">Saigon Bistro</a>
+                <a href="/index.html" class="font-extrabold tracking-tight">Saigon Bistro</a>
             </div>
 
             <nav class="hidden sm:flex items-center justify-center gap-1 text-sm font-semibold" aria-label="Primary">
                 <a class="rounded-lg px-3 py-2 hover:bg-black/10" href="/index.html">Home</a>
                 <a class="rounded-lg px-3 py-2 hover:bg-black/10" href="/index.html#story">Our Story</a>
-                <a class="rounded-lg px-3 py-2 hover:bg-black/10" href="/menu/menu.html">Menu</a>
+                <a class="rounded-lg px-3 py-2 hover:bg-black/10" href="/pages/menu/menu.html">Menu</a>
 
                 <a id="adminDashboardLink" href="/pages/dashboard/dashboard.html"
                     class="rounded-lg px-3 py-2 hover:bg-black/10 font-semibold">
@@ -74,22 +74,30 @@
                 <!-- MOBILE: horizontal tabs, DESKTOP: vertical menu -->
                 <nav class="flex md:flex-col md:space-y-1 gap-2 md:gap-0 px-2 pb-4 overflow-x-auto md:overflow-visible">
 
-                    <button class="dash-tab shrink-0 md:w-full flex items-center gap-3 text-left px-3 py-2 rounded-lg hover:bg-black/5 transition" data-tab="orders">
+                    <button
+                        class="dash-tab shrink-0 md:w-full flex items-center gap-3 text-left px-3 py-2 rounded-lg hover:bg-black/5 transition"
+                        data-tab="orders">
                         <img src="/assets/images/vieworders.png" alt="View Orders" class="w-5 h-5 opacity-80" />
                         <span class="sidebar-label">View Orders</span>
                     </button>
 
-                    <button class="dash-tab shrink-0 md:w-full flex items-center gap-3 text-left px-3 py-2 rounded-lghover:bg-black/5 transition" data-tab="tickets">
+                    <button
+                        class="dash-tab shrink-0 md:w-full flex items-center gap-3 text-left px-3 py-2 rounded-lghover:bg-black/5 transition"
+                        data-tab="tickets">
                         <img src="/assets/images/tickets.png" alt="Help Desk Tickets" class="w-5 h-5 opacity-80" />
                         <span class="sidebar-label">Help Tickets</span>
                     </button>
 
-                    <button class="dash-tab shrink-0 md:w-full flex items-center gap-3 text-left px-3 py-2 rounded-lg hover:bg-black/5 transition" data-tab="staff">
+                    <button id="staffTabBtn"
+                        class="dash-tab hidden md:w-full flex items-center gap-3 text-left px-3 py-2 rounded-lg hover:bg-black/5 transition"
+                        data-tab="staff">
                         <img src="/assets/images/viewstaffs.png" alt="View Staffs" class="w-5 h-5 opacity-80" />
                         <span class="sidebar-label">View Staffs</span>
                     </button>
 
-                    <button class="dash-tab shrink-0 md:w-full flex items-center gap-3 text-left px-3 py-2 rounded-lg hover:bg-black/5 transition" data-tab="reports">
+                    <button
+                        class="dash-tab shrink-0 md:w-full flex items-center gap-3 text-left px-3 py-2 rounded-lg hover:bg-black/5 transition"
+                        data-tab="reports">
                         <img src="/assets/images/viewreports.png" alt="Reports" class="w-5 h-5 opacity-80" />
                         <span class="sidebar-label">Reports</span>
                     </button>
@@ -97,7 +105,7 @@
             </aside>
 
             <!-- Content area -->
-            <section class="flex-1 min-w-0 bg-white">
+            <section id="contentArea" class="flex-1 min-w-0 bg-white">
                 <!-- keep content nicely sized while sidebar stays full-width -->
                 <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-6 space-y-4">
                     <div class="flex items-center justify-between">
@@ -132,8 +140,8 @@
                 <div class="space-y-4">
                     <h2 class="text-xl font-bold text-black/90 mb-4">COMPANY</h2>
                     <ul class="space-y-2 text-sm">
-                        <li><a href="../index.html" class="hover:text-black transition">Home</a></li>
-                        <li><a href="../index.html#about" class="hover:text-black transition">About Us</a></li>
+                        <li><a href="/index.html" class="hover:text-black transition">Home</a></li>
+                        <li><a href="/index.html#about" class="hover:text-black transition">About Us</a></li>
                         <li><a href="#" class="hover:text-black transition">Career</a></li>
                         <li><a href="#" class="hover:text-black transition">Privacy Policy</a></li>
                     </ul>

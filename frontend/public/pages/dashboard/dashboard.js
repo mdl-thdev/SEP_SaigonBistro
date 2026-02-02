@@ -98,6 +98,57 @@ function renderStatusButtons(order) {
   `;
 }
 
+const contentArea = document.getElementById("contentArea");
+const headerEl = document.querySelector("header");
+const footerEl = document.querySelector("footer");
+const sidebarEl = document.getElementById("sidebar");
+
+function swapClasses(el, add = [], remove = []) {
+  if (!el) return;
+  remove.forEach((c) => el.classList.remove(c));
+  add.forEach((c) => el.classList.add(c));
+}
+
+function setReportsTheme(_on) {
+
+  // BODY
+  document.body.classList.remove("bg-black", "text-white");
+  document.body.classList.add("bg-white", "text-slate-900");
+
+  // HEADER
+  headerEl?.classList.remove("bg-black/80", "border-slate-800", "text-white");
+  headerEl?.classList.add("bg-white/60", "border-gray-200", "text-slate-900");
+
+  // SIDEBAR
+  sidebarEl?.classList.remove("bg-slate-950", "border-slate-800", "text-white");
+  sidebarEl?.classList.add("bg-white", "border-gray-200", "text-black");
+
+  // FOOTER
+  footerEl?.classList.remove("bg-black", "border-slate-800", "text-slate-200");
+  footerEl?.classList.add("bg-gray-100", "border-black/10", "text-black");
+
+  // CONTENT AREA
+  contentArea?.classList.remove("bg-black", "text-white");
+  contentArea?.classList.add("bg-white", "text-slate-900");
+
+  // Sidebar tab hover (always light)
+  document.querySelectorAll(".dash-tab").forEach((btn) => {
+    btn.classList.add("hover:bg-black/5");
+    btn.classList.remove("hover:bg-white/10");
+  });
+
+  // Top nav links always normal
+  document.querySelectorAll("header nav a").forEach((a) => {
+    a.classList.add("text-black");
+    a.classList.remove("text-slate-200");
+  });
+
+  // Welcome text normal
+  const welcome = document.getElementById("welcomeUser");
+  welcome?.classList.remove("text-slate-200");
+}
+
+
 // View Orders: Renders the list of orders into the page body
 function renderOrders(orders = []) {
   if (!orders.length) {
@@ -728,7 +779,7 @@ async function loadTicketsUI() {
 //   - Array of staff objects
 //   - { staffs: [...] } or { staff: [...] }
 async function fetchStaffs() {
-  const res = await fetch("http://localhost:3000/api/staff", {
+  const res = await fetch("http://localhost:3000/api/profiles", {
     headers: { ...roleHeader },
   });
 
@@ -748,16 +799,15 @@ function staffBadge(role) {
   const r = (role ?? "").toString().toLowerCase();
   const cls =
     r === "admin" ? "bg-purple-100 text-purple-800"
-    : r === "staff" ? "bg-blue-100 text-blue-800"
-    : "bg-slate-100 text-slate-800";
+      : r === "staff" ? "bg-blue-100 text-blue-800"
+        : "bg-slate-100 text-slate-800";
   return `<span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold ${cls}">
     ${escapeHtml(role ?? "Unknown")}
   </span>`;
 }
 
 async function loadStaffUI() {
-  // quick loading state
-  pageTitle.textContent = "View Staffs";
+  pageTitle.textContent = "All Staffs";
   pageActions.innerHTML = "";
   pageBody.innerHTML = `
     <div class="p-4 border rounded-xl bg-slate-50 text-slate-600">
@@ -766,21 +816,41 @@ async function loadStaffUI() {
   `;
 
   const staffs = await fetchStaffs();
-
-  // local UI state (search)
   const state = { q: "" };
 
-  function render() {
+  // 1) Render static shell ONCE
+  pageBody.innerHTML = `
+  <div class="flex items-center">
+    <div class="w-full md:w-80 md:ml-auto">
+      <input
+        id="staffSearch"
+        placeholder="Search name / email / role..."
+        class="w-full rounded-xl border px-3 py-2 text-sm"
+      />
+    </div>
+  </div>
+
+  <div id="staffList" class="mt-3 space-y-3"></div>
+`;
+
+  const inputEl = document.getElementById("staffSearch");
+  const listEl = document.getElementById("staffList");
+
+  function renderList() {
     const q = safeLower(state.q);
+
     const filtered = staffs.filter((s) => {
       const blob = [
         s.id,
+        s.display_name,
         s.name,
         s.full_name,
         s.email,
         s.role,
-        s.phone,
-      ].map((x) => safeLower(x)).join(" ");
+      ]
+        .map((x) => safeLower(x))
+        .join(" ");
+
       return !q || blob.includes(q);
     });
 
@@ -790,82 +860,367 @@ async function loadStaffUI() {
       </div>
     `;
 
-    pageBody.innerHTML = `
-      <div class="border rounded-2xl p-4 bg-white">
-        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
-            <div class="text-lg font-bold">Staff Directory</div>
-            <div class="text-sm text-slate-600">Admin only</div>
-          </div>
-
-          <div class="w-full md:w-80">
-            <input id="staffSearch"
-              value="${escapeHtml(state.q)}"
-              placeholder="Search name / email / role..."
-              class="w-full rounded-xl border px-3 py-2 text-sm" />
-          </div>
-        </div>
-      </div>
-
-      <div class="mt-3 space-y-3">
-        ${filtered.length ? filtered.map((s) => {
-          const name = s.name ?? s.full_name ?? "-";
+    listEl.innerHTML = filtered.length
+      ? filtered
+        .map((s) => {
+          const name = s.display_name ?? s.name ?? s.full_name ?? "-";
           const email = s.email ?? "-";
           const role = s.role ?? "-";
-          const created = s.created_at ? formatDT(s.created_at) : (s.createdAt ? formatDT(s.createdAt) : "-");
+          const created = s.created_at
+            ? formatDT(s.created_at)
+            : s.createdAt
+              ? formatDT(s.createdAt)
+              : "-";
 
           return `
-            <div class="border rounded-2xl p-4 bg-white flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div class="min-w-0 space-y-1">
-                <div class="flex flex-wrap items-center gap-2">
-                  <div class="font-bold truncate">${escapeHtml(name)}</div>
-                  ${staffBadge(role)}
-                </div>
+              <div class="border rounded-2xl p-4 bg-white flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div class="min-w-0 space-y-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <div class="font-bold truncate">${escapeHtml(name)}</div>
+                    ${staffBadge(role)}
+                  </div>
 
-                <div class="text-sm text-slate-600 flex flex-wrap gap-x-3 gap-y-1">
-                  <span><span class="font-semibold">Email:</span> ${escapeHtml(email)}</span>
-                  ${s.phone ? `<span><span class="font-semibold">Phone:</span> ${escapeHtml(s.phone)}</span>` : ""}
-                  <span><span class="font-semibold">ID:</span> ${escapeHtml(s.id ?? "-")}</span>
-                </div>
+                  <div class="text-sm text-slate-600 flex flex-wrap gap-x-3 gap-y-1">
+                    <span><span class="font-semibold">Email:</span> ${escapeHtml(email)}</span>
+                  </div>
 
-                <div class="text-xs text-slate-500">
-                  Created: ${escapeHtml(created)}
+                  <div class="text-xs text-slate-500">
+                    Created: ${escapeHtml(created)}
+                  </div>
                 </div>
               </div>
-
-              <div class="shrink-0 flex items-center gap-2">
-              <!-- future actions (edit / deactivate) -->
-              </div>
-
-          `;
-        }).join("") : `
+            `;
+        })
+        .join("")
+      : `
           <div class="p-4 border rounded-2xl bg-slate-50 text-slate-600">
             No staffs found.
           </div>
-        `}
-      </div>
-    `;
-
-    // wire search
-    document.getElementById("staffSearch")?.addEventListener("input", (e) => {
-      state.q = e.target.value || "";
-      render();
-    });
+        `;
   }
 
-  render();
-}
+  // 2) Wire input ONCE (no DOM replacement)
+  inputEl.addEventListener("input", (e) => {
+    state.q = e.target.value || "";
+    renderList();
+  });
 
+  // initial list render
+  renderList();
+}
 
 /* ================================
 // APIs: Reports: (Admin only)
 =================================== */
 async function loadReportsUI() {
+  pageTitle.textContent = "Case Reports";
+  pageActions.innerHTML = "";
+
   pageBody.innerHTML = `
     <div class="p-4 border rounded-xl bg-slate-50 text-slate-600">
-      Reports UI not implemented yet.
+      Loading report...
     </div>
   `;
+
+  const allTickets = await fetchTickets();
+
+  const STATUS_OPTIONS = [
+    "All",
+    "New",
+    "Pending Review",
+    "Waiting Customer Response",
+    "In Progress",
+    "Resolved",
+    "Reopened",
+  ];
+
+  const CATEGORY_OPTIONS = ["All"].concat(
+    Array.from(
+      new Set(allTickets.map((t) => (t.category ?? "").toString().trim()).filter(Boolean))
+    ).sort((a, b) => a.localeCompare(b))
+  );
+
+  const state = {
+    startDate: "", // YYYY-MM-DD
+    endDate: "",   // YYYY-MM-DD
+    status: "All",
+    category: "All",
+  };
+
+  // ---------- helpers ----------
+  function safeLower(v) {
+    return (v ?? "").toString().trim().toLowerCase();
+  }
+
+  function escapeHtml(s) {
+    return (s ?? "").toString().replace(/[&<>"']/g, (m) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
+    }[m]));
+  }
+
+  function parseDateOnlyToMs(dateStr, endOfDay = false) {
+    if (!dateStr) return null;
+    const t = endOfDay ? `${dateStr}T23:59:59.999` : `${dateStr}T00:00:00.000`;
+    const ms = new Date(t).getTime();
+    return isNaN(ms) ? null : ms;
+  }
+
+  function applyFilters(list) {
+    const startMs = parseDateOnlyToMs(state.startDate, false);
+    const endMs = parseDateOnlyToMs(state.endDate, true);
+
+    const sStatus = safeLower(state.status);
+    const sCat = safeLower(state.category);
+
+    return list.filter((t) => {
+      const createdMs = t.created_at ? new Date(t.created_at).getTime() : null;
+
+      if (startMs != null && createdMs != null && createdMs < startMs) return false;
+      if (endMs != null && createdMs != null && createdMs > endMs) return false;
+
+      if (sStatus !== "all" && safeLower(t.status) !== sStatus) return false;
+      if (sCat !== "all" && safeLower(t.category) !== sCat) return false;
+
+      return true;
+    });
+  }
+
+  function countBy(list, keyFn) {
+    const m = new Map();
+    for (const x of list) {
+      const k = (keyFn(x) ?? "Unknown").toString().trim() || "Unknown";
+      m.set(k, (m.get(k) || 0) + 1);
+    }
+    return Array.from(m.entries()).sort((a, b) => b[1] - a[1]); // [key, count]
+  }
+
+  // Status text colors (Reports only)
+  function statusTextClass(status) {
+    const s = safeLower(status);
+    if (s === "resolved") return "text-green-900";
+    if (s === "new") return "text-blue-600";
+    if (s === "in progress" || s === "pending review" || s === "waiting customer response") return "text-purple-400";
+    if (s === "reopened") return "text-red-900";
+    return "text-dark-blue-500";
+  }
+
+  // Category palette (consistent per category)
+  const CATEGORY_PALETTE = [
+    "#ef4444", // red
+    "#f59e0b", // amber
+    "#22c55e", // green
+    "#3b82f6", // blue
+    "#a855f7", // purple
+    "#06b6d4", // cyan
+    "#f97316", // orange
+    "#84cc16", // lime
+    "#e879f9", // pink
+    "#60a5fa", // light blue
+  ];
+
+  function hashToIndex(str, mod) {
+    const s = String(str ?? "");
+    let h = 0;
+    for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+    return h % mod;
+  }
+
+  function categoryColor(label) {
+    return CATEGORY_PALETTE[hashToIndex(label, CATEGORY_PALETTE.length)];
+  }
+
+  function renderBarChart(items, { width = 720, barH = 22, gap = 10, left = 220, right = 20 } = {}) {
+    const max = Math.max(1, ...items.map(([, c]) => c));
+    const height = Math.max(90, items.length * (barH + gap) + 30);
+    const chartW = width - left - right;
+
+    const rows = items.map(([label, count], i) => {
+      const y = 20 + i * (barH + gap);
+      const w = Math.round((count / max) * chartW);
+      const fill = categoryColor(label);
+
+      return `
+        <text x="${left - 10}" y="${y + barH - 6}" text-anchor="end" font-size="12" fill="#000000">
+          ${escapeHtml(label)}
+        </text>
+
+        <rect x="${left}" y="${y}" width="${w}" height="${barH}" rx="8" fill="${fill}"></rect>
+
+        <text x="${left + w + 8}" y="${y + barH - 6}" font-size="12" fill="#0f172a">
+          ${count}
+        </text>
+      `;
+    }).join("");
+
+    return `
+      <svg viewBox="0 0 ${width} ${height}" class="w-full h-auto">
+        <text x="${left}" y="14" font-size="12" fill="#334155">Count</text>
+        ${rows || `<text x="${left}" y="40" font-size="12" fill="#334155">No data</text>`}
+      </svg>
+    `;
+  }
+
+  // ---------- render ----------
+  function render() {
+    const filtered = applyFilters(allTickets);
+    const byStatus = countBy(filtered, (t) => t.status ?? "Unknown");
+    const byCategory = countBy(filtered, (t) => t.category ?? "Unknown");
+    const total = filtered.length;
+
+    // Top right summary text (now in light color)
+    pageActions.innerHTML = `
+      <div class="text-sm text-slate-300">
+        Showing <span class="font-semibold text-white">${total}</span> case(s)
+      </div>
+    `;
+
+    const topCategories = byCategory.slice(0, 10);
+
+    pageBody.innerHTML = `
+      <!-- Filters -->
+      <div class="border border-gray-200 rounded-2xl p-4 bg-white text-slate-900">
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <!-- LEFT: filters -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full lg:w-auto">
+            <label class="space-y-1">
+              <div class="text-xs font-semibold text-slate-300">Start date</div>
+              <input id="rStart" type="date"
+                value="${escapeHtml(state.startDate)}"
+                class="w-full rounded-xl border border-gray-300 bg-white text-slate-900 px-3 py-2 text-sm" />
+            </label>
+
+            <label class="space-y-1">
+              <div class="text-xs font-semibold text-slate-300">End date</div>
+              <input id="rEnd" type="date"
+                value="${escapeHtml(state.endDate)}"
+                class="w-full rounded-xl border border-gray-300 bg-white text-slate-900 px-3 py-2 text-sm" />
+            </label>
+
+            <label class="space-y-1">
+              <div class="text-xs font-semibold text-slate-700">Status</div>
+              <select id="rStatus"
+                class="w-full rounded-xl border border-gray-300 bg-white text-slate-900 px-3 py-2 text-sm">
+                ${STATUS_OPTIONS.map(x =>
+      `<option ${x === state.status ? "selected" : ""}>${escapeHtml(x)}</option>`
+    ).join("")}
+              </select>
+            </label>
+
+            <label class="space-y-1">
+              <div class="text-xs font-semibold text-slate-300">Category</div>
+              <select id="rCat"
+                class="w-full rounded-xl border border-gray-300 bg-white text-slate-900 px-3 py-2 text-sm">
+                ${CATEGORY_OPTIONS.map(x =>
+      `<option ${x === state.category ? "selected" : ""}>${escapeHtml(x)}</option>`
+    ).join("")}
+              </select>
+            </label>
+          </div>
+
+          <!-- RIGHT: buttons -->
+          <div class="flex items-center gap-2 justify-end shrink-0">
+            <button id="rApply"
+              class="rounded-xl px-4 py-2 text-sm font-semibold border border-gray-300 text-slate-900 hover:bg-black/5">
+              Apply
+            </button>
+
+            <button id="rReset"
+              class="rounded-xl px-4 py-2 text-sm font-semibold border border-gray-300 text-slate-900 hover:bg-black/5">
+              Reset
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary cards -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div class="border border-gray-200 rounded-2xl p-4 bg-white text-slate-900">
+          <div class="text-xs text-slate-400">Total cases</div>
+          <div class="text-3xl font-extrabold mt-1">${total}</div>
+        </div>
+
+        <div class="border border-gray-200 rounded-2xl p-4 bg-white text-slate-900">
+          <div class="text-xs text-slate-400">Top category</div>
+          <div class="text-lg font-bold mt-1">${escapeHtml(topCategories[0]?.[0] ?? "-")}</div>
+          <div class="text-sm text-slate-300">${topCategories[0]?.[1] ?? 0} case(s)</div>
+        </div>
+
+        <div class="border border-gray-200 rounded-2xl p-4 bg-white text-slate-900">
+          <div class="text-xs text-slate-400">Top status</div>
+          <div class="text-lg font-bold mt-1 ${statusTextClass(byStatus[0]?.[0] ?? "")}">
+            ${escapeHtml(byStatus[0]?.[0] ?? "-")}
+          </div>
+          <div class="text-sm text-slate-300">${byStatus[0]?.[1] ?? 0} case(s)</div>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <div class="border border-gray-200 rounded-2xl p-4 bg-white text-slate-900">
+          <div class="flex items-center justify-between">
+            <div class="text-sm font-bold">Cases by category</div>
+            <div class="text-xs text-slate-400">
+              ${escapeHtml(state.startDate || "All time")} → ${escapeHtml(state.endDate || "Now")}
+            </div>
+          </div>
+
+          <div class="mt-3">
+            ${renderBarChart(topCategories)}
+          </div>
+
+          <!-- Legend -->
+          <div class="mt-3 flex flex-wrap gap-2 text-xs text-slate-300">
+            ${topCategories.map(([label]) => `
+              <span class="inline-flex items-center gap-2 rounded-full border border-gray-200 px-3 py-1 bg-white text-slate-900">
+                <span class="inline-block w-2.5 h-2.5 rounded-full" style="background:${categoryColor(label)}"></span>
+                ${escapeHtml(label)}
+              </span>
+            `).join("")}
+          </div>
+        </div>
+
+        <div class="border border-gray-200 rounded-2xl p-4 bg-white text-slate-900">
+          <div class="text-sm font-bold">Cases by status</div>
+          <div class="mt-3 space-y-2">
+            ${byStatus.length
+        ? byStatus.map(([k, c]) => `
+                    <div class="flex items-center justify-between text-sm">
+                      <div class="font-semibold ${statusTextClass(k)}">${escapeHtml(k)}</div>
+                      <div class="text-slate-900">${c}</div>
+                    </div>
+                  `).join("")
+        : `<div class="text-sm text-slate-300">No data for current filters.</div>`
+      }
+          </div>
+        </div>
+      </div>
+    `;
+
+    // wire events
+    const $ = (id) => document.getElementById(id);
+
+    $("rApply")?.addEventListener("click", () => {
+      state.startDate = $("rStart").value;
+      state.endDate = $("rEnd").value;
+      state.status = $("rStatus").value;
+      state.category = $("rCat").value;
+      render();
+    });
+
+    $("rReset")?.addEventListener("click", () => {
+      state.startDate = "";
+      state.endDate = "";
+      state.status = "All";
+      state.category = "All";
+      render();
+    });
+  }
+
+  render();
 }
 
 
@@ -933,6 +1288,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   async function loadTab(tabKey) {
+    setReportsTheme(tabKey === "reports");
     setActiveTab(tabKey);
     pageActions.innerHTML = "";
 
