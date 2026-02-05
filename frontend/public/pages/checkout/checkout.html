@@ -1,4 +1,4 @@
-<!-- // SEP_SaigonBistro/docs/checkout/checkout.html -->
+<!-- // SEP_SaigonBistro/frontend/public/pages/checkout/checkout.html -->
 
 <!doctype html>
 <html lang="en">
@@ -29,6 +29,7 @@
                 <!-- <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="../orders/orderStatus.html">Order</a> -->
                 <a id="orderNavLink" class="rounded-lg px-3 py-2 hover:bg-black/10" href="../orders/orderStatus.html">Order</a>
                 <a class="rounded-lg px-3 py-2 hover:bg-black/10" href="../index.html#about">About Us</a>
+                <a class="rounded-lg px-3 py-2 hover:bg-white/10" href="../help/help.html">Help Page</a>
 
                 <a id="adminDashboardLink" href="/admin/dashboard.html"
                     class="hidden rounded-lg px-3 py-2 hover:bg-black/10 font-semibold">
@@ -49,7 +50,7 @@
                 </div>
 
                 <div id="authLoggedIn" class="hidden items-center gap-2">
-                    <span id="welcomeUser" class="text-sm font-semibold text-white/90"></span>
+                    <span id="welcomeUser" class="text-sm font-semibold opacity-90"></span>
                     <button id="logoutBtn" class="rounded-xl px-3 py-2 text-sm font-semibold hover:bg-black/10">
                         Logout
                     </button>
@@ -159,7 +160,7 @@
                     <!-- Place Order Button -->
                     <button type="submit" form="checkoutForm" id="placeOrderBtn"
                         class="w-full mt-6 py-3 rounded-xl text-sm font-semibold bg-slate-900 text-white hover:bg-slate-800 transition
-                       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 opacity-50 pointer-events-none">
+                       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2">
                         Place Order (Total: <span id="buttonTotalText">$0.00</span>)
                     </button>
 

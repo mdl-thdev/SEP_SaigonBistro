@@ -1,42 +1,15 @@
-// FED_KCoffee/docs/orders/orderStatus.js
+// SEP_SaigonBistro/frontend/public/pages/orders/orderStatus.js
 
 import { initAuthUI, getAuthUser } from "../../js/auth.js";
 import { formatMoney } from "../../js/utils.js";
-import { getLastOrder } from "../../js/cartStore.js";
+import { supabase } from "../../js/supabaseClient.js";
 
-const isGitHubPages = window.location.hostname.includes("github.io");
-const isLocal =
-  window.location.hostname === "localhost" ||
-  window.location.hostname === "127.0.0.1";
-
-// GitHub Pages needs repo base path; Vercel does not
-const BASE_PATH = isGitHubPages ? "/FED_KCoffee" : "";
-
-// Local uses same-origin. Non-local uses Render API.
-const API_BASE_URL = isLocal ? "" : "https://fed-kcoffee.onrender.com";
-
-function getPath(path) {
-  if (!path.startsWith("/")) return path;
-  return `${BASE_PATH}${path}`;
-}
+const API_BASE =
+  window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? "http://localhost:3000"
+    : "https://fed-saigonbistro.onrender.com";
 
 const statusBox = document.getElementById("statusBox");
-
-let activeOrderId = null;
-let pollTimer = null;
-let lastRenderedFingerprint = "";
-
-/* -------------------------
-   Helpers
--------------------------- */
-
-// UPDATE redirectToLogin():
-function redirectToLogin() {
-  const currentPath = window.location.pathname.replace(BASE_PATH, "");
-  const next = encodeURIComponent(currentPath + window.location.search);
-  const reason = encodeURIComponent("Please log in to view your order status.");
-  window.location.href = getPath(`/login/login.html?next=${next}&reason=${reason}`);
-}
 
 function escapeHtml(str = "") {
   return String(str)
@@ -47,18 +20,12 @@ function escapeHtml(str = "") {
     .replaceAll("'", "&#039;");
 }
 
-/* -------------------------
-   Rendering
--------------------------- */
-
-// UPDATE renderNoOrder():
 function renderNoOrder() {
   statusBox.innerHTML = `
-    <div class="space-y-3 text-center">
-      <p class="text-slate-700 font-semibold">No recent order found.</p>
-      <p class="text-slate-500 text-sm">Place an order first, then come back to track it.</p>
-      <a href="${getPath("/menu/menu.html")}"
-         class="inline-block rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">
+    <div class="text-center space-y-3">
+      <p class="font-semibold text-slate-700">No order selected.</p>
+      <a href="../menu/menu.html"
+         class="inline-block px-4 py-2 rounded bg-slate-900 text-white hover:bg-slate-800">
         Back to Menu
       </a>
     </div>
@@ -66,169 +33,101 @@ function renderNoOrder() {
 }
 
 function renderOrder(order) {
-  const createdAt = order.createdAt ? new Date(order.createdAt).toLocaleString() : "-";
-  const id = order.id || order.shortId || order.orderId || "(pending)";
-  const status = order.status || "UNKNOWN";
-  const totals = order.totals || {};
-  const timeline = Array.isArray(order.timeline) ? order.timeline : [];
+  const shortId = order.public_orderid || order.public_orderId || null;
+  const showId = shortId || order.id;
 
-  const timelineHTML = timeline.length
-    ? `<ol class="space-y-2 mt-3">
-        ${timeline
-          .slice()
-          .reverse()
-          .map(
-            (t) => `
-              <li class="text-sm">
-                <span class="font-semibold">${escapeHtml(t.status)}</span>
-                <span class="text-slate-500">
-                  ${t.at ? new Date(t.at).toLocaleString() : ""}
-                </span>
-              </li>`
-          )
-          .join("")}
-      </ol>`
-    : `<p class="text-sm text-slate-500 mt-3">No tracking updates yet.</p>`;
+  const placedAt = order.created_at ? new Date(order.created_at).toLocaleString() : "-";
+  const total = Number(order.total || 0);
 
   statusBox.innerHTML = `
     <div class="space-y-4">
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-        <div>
-          <p class="text-slate-500 text-sm">Order ID</p>
-          <p class="font-bold text-lg">${escapeHtml(id)}</p>
+      <div>
+        <p class="text-sm text-slate-500">Order ID</p>
+        <p class="font-bold text-lg">${escapeHtml(showId)}</p>
+        ${
+          shortId
+            ? `<p class="text-xs text-slate-400 mt-1">Reference: ${escapeHtml(order.id)}</p>`
+            : ""
+        }
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span class="text-sm text-slate-500">Status</span>
+        <span class="font-semibold">${escapeHtml(order.status || "UNKNOWN")}</span>
+      </div>
+
+      <div class="grid sm:grid-cols-2 gap-4">
+        <div class="p-4 border rounded">
+          <p class="text-sm text-slate-500">Placed</p>
+          <p class="font-semibold">${escapeHtml(placedAt)}</p>
         </div>
 
-        <div class="inline-flex items-center gap-2 rounded-full px-4 py-2 bg-white border">
-          <span class="text-slate-500 text-sm">Status</span>
-          <span class="font-bold">${escapeHtml(status)}</span>
+        <div class="p-4 border rounded">
+          <p class="text-sm text-slate-500">Total</p>
+          <p class="font-semibold">${formatMoney(total)}</p>
         </div>
       </div>
 
-      <div class="grid sm:grid-cols-3 gap-4">
-        <div class="bg-white border rounded-xl p-4">
-          <p class="text-slate-500 text-sm">Placed</p>
-          <p class="font-semibold">${escapeHtml(createdAt)}</p>
-        </div>
-        <div class="bg-white border rounded-xl p-4">
-          <p class="text-slate-500 text-sm">Subtotal</p>
-          <p class="font-semibold">${formatMoney(totals.subtotal || 0)}</p>
-        </div>
-        <div class="bg-white border rounded-xl p-4">
-          <p class="text-slate-500 text-sm">Total</p>
-          <p class="font-semibold">${formatMoney(totals.total || 0)}</p>
-        </div>
-      </div>
-
-      <div class="bg-white border rounded-xl p-4">
-        <p class="font-semibold">Tracking timeline</p>
-        ${timelineHTML}
-        <p class="text-xs text-slate-400 mt-3">Auto-updating every 5 seconds</p>
+      <div class="p-4 border rounded">
+        <p class="text-sm text-slate-500 mb-1">Delivery Address</p>
+        <p class="text-sm">
+          ${escapeHtml(order.delivery_address || "-")}
+          ${order.block_unit_number ? `<br>${escapeHtml(order.block_unit_number)}` : ""}
+          ${order.delivery_city ? `<br>${escapeHtml(order.delivery_city)}` : ""}
+          ${order.delivery_state ? `, ${escapeHtml(order.delivery_state)}` : ""}
+          ${order.delivery_zip ? ` ${escapeHtml(order.delivery_zip)}` : ""}
+        </p>
+        ${order.delivery_notes ? `<p class="text-xs text-slate-500 mt-2">Notes: ${escapeHtml(order.delivery_notes)}</p>` : ""}
       </div>
     </div>
   `;
 }
 
-/* -------------------------
-   Server sync + polling
--------------------------- */
+async function fetchOrderFromServer(orderUuid) {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
 
-// UPDATE fetchOrderFromServer():
-async function fetchOrderFromServer(orderId) {
-  const user = getAuthUser();
-  const res = await fetch(`${API_BASE_URL}/api/order/${encodeURIComponent(orderId)}`, {
+  if (!session?.access_token) throw new Error("Not authenticated");
+
+  const res = await fetch(`${API_BASE}/api/orders/${encodeURIComponent(orderUuid)}`, {
     headers: {
       Accept: "application/json",
-      "x-user-id": String(user?.id || ""),
-      "x-user-role": String(user?.role || ""),
+      Authorization: `Bearer ${session.access_token}`,
     },
   });
-  if (!res.ok) throw new Error(`Failed to load order (${res.status})`);
-  const data = await res.json();
-  return data.order || data;
+
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json?.message || "Failed to load order");
+  return json.order;
 }
-
-function fingerprintOrder(order) {
-  const id = order?.id || order?.shortId || order?.orderId || "";
-  const status = order?.status || "";
-  const timelineLen = Array.isArray(order?.timeline) ? order.timeline.length : 0;
-  const lastAt = timelineLen > 0 ? order.timeline[timelineLen - 1]?.at || "" : "";
-  return `${id}|${status}|${timelineLen}|${lastAt}`;
-}
-
-async function loadOrderFromServer() {
-  if (!activeOrderId) return;
-
-  try {
-    const serverOrder = await fetchOrderFromServer(activeOrderId);
-    const fp = fingerprintOrder(serverOrder);
-
-    if (fp !== lastRenderedFingerprint) {
-      lastRenderedFingerprint = fp;
-      renderOrder(serverOrder);
-    }
-
-    // Stop polling once order is completed
-    if (["DELIVERED", "CANCELLED"].includes(serverOrder.status)) {
-      clearInterval(pollTimer);
-    }
-  } catch (err) {
-    console.warn("Polling failed:", err.message || err);
-  }
-}
-
-/* -------------------------
-   Init
--------------------------- */
 
 async function init() {
-  const user = getAuthUser();
-  const params = new URLSearchParams(window.location.search);
-  const orderIdFromUrl = params.get("orderId");
-  const last = getLastOrder?.() || null;
-
-  // Guests are NOT allowed to view order status page
+  const user = await getAuthUser();
   if (!user) {
-    redirectToLogin();
+    window.location.href = "../login/login.html";
     return;
   }
 
-  // UPDATE init() - admin redirect:
-  if (user?.role === "admin") {
-    window.location.href = getPath("/admin/dashboard.html");
-    return;
-  }
+  const params = new URLSearchParams(window.location.search);
+  const orderId = params.get("orderId"); // this is UUID from checkout redirect
 
-  activeOrderId = orderIdFromUrl || last?.id || last?.shortId || last?.orderId || null;
-
-  if (!activeOrderId) {
+  if (!orderId) {
     renderNoOrder();
     return;
   }
 
   statusBox.innerHTML = `<p class="text-slate-500">Loading your order...</p>`;
 
-  await loadOrderFromServer();
-
-  if (!lastRenderedFingerprint && last) {
-    renderOrder(last);
+  try {
+    const order = await fetchOrderFromServer(orderId);
+    renderOrder(order);
+  } catch (err) {
+    statusBox.innerHTML = `<p class="text-red-600">${escapeHtml(err.message || "Failed to load order")}</p>`;
   }
-
-  pollTimer = setInterval(loadOrderFromServer, 5000);
 }
 
-/* -------------------------
-   Lifecycle
--------------------------- */
-
-window.addEventListener("beforeunload", () => {
-  if (pollTimer) clearInterval(pollTimer);
-});
-
-// UPDATE DOMContentLoaded:
 document.addEventListener("DOMContentLoaded", () => {
-  initAuthUI({ redirectOnLogout: getPath("/index.html") });
-  init().catch((err) => {
-    console.error(err);
-    statusBox.innerHTML = `<p class="text-red-600">Failed to load order status.</p>`;
-  });
+  initAuthUI({ redirectOnLogout: "/index.html" });
+  init();
 });

@@ -18,6 +18,10 @@ export async function initAuthUI(options = {}) {
   const adminDashboardLink = document.getElementById("adminDashboardLink");
   const orderNavLink = document.getElementById("orderNavLink");
 
+  if (orderNavLink) {
+    orderNavLink.href = "/pages/orders/orderStatus.html";
+  }
+
   if (!authArea && hideAuthAreaIfMissing) return;
 
   async function render() {
@@ -47,10 +51,9 @@ export async function initAuthUI(options = {}) {
       role = me?.profile?.role ?? role;
       // name from backend profile
       displayName =
-        me?.profile?.display_name ||  
-        me?.profile?.display_name ||  
-        me?.profile?.name ||          
-        me?.profile?.displayName ||   
+        me?.profile?.display_name ||
+        me?.profile?.name ||
+        me?.profile?.displayName ||
         displayName;
 
       if (redirectAdminStaffTo && (role === "admin" || role === "staff")) {
