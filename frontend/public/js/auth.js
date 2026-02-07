@@ -76,9 +76,31 @@ export async function initAuthUI(options = {}) {
   }
 
   // logout
-  logoutBtn?.addEventListener("click", async () => {
-    await supabase.auth.signOut();
-    window.location.href = redirectOnLogout;
+  function withTimeout(promise, ms = 1200) {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), ms)),
+    ]);
+  }
+
+  // logout
+  logoutBtn?.addEventListener("click", async (e) => {
+    e.preventDefault();
+
+    // disable to prevent double-click / double signout
+    logoutBtn.disabled = true;
+
+    // 1) Clear local session immediately (this is the key)
+    // Supabase v2 supports scope: "local" to remove session instantly on this device
+    try {
+      await withTimeout(supabase.auth.signOut({ scope: "local" }), 1200);
+    } catch (err) {
+      // even if network hangs, local logout usually already happened
+      console.warn("Logout timeout or error:", err?.message || err);
+    } finally {
+      // 2) Redirect after logout is done (don’t redirect before)
+      window.location.assign(redirectOnLogout);
+    }
   });
 
   await render();

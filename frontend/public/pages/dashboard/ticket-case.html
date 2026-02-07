@@ -11,17 +11,45 @@
     <link rel="stylesheet" href="/styles/main.css" />
   </head>
 
-  <body class="min-h-screen bg-white text-slate-900">
-    <header class="sticky top-0 z-50 bg-white/60 backdrop-blur border-b border-gray-200">
-      <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
-        <a href="/pages/dashboard/dashboard.html" class="font-extrabold tracking-tight">Saigon Bistro</a>
-        <a href="/pages/dashboard/dashboard.html" class="text-sm font-semibold rounded-xl px-3 py-2 hover:bg-black/10">
-          ← Back to Dashboard
-        </a>
-      </div>
+  <body class="min-h-screen flex flex-col bg-white text-slate-900">
+    <!-- Header -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-white/60 backdrop-blur border-b border-gray-200">
+        <div
+            class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 h-14 grid grid-cols-[auto_1fr_auto] items-center gap-8 text-black">
+            <div class="flex items-center gap-2">
+                <a href="/pages/dashboard/dashboard.html" class="font-extrabold tracking-tight">Saigon Bistro</a>
+            </div>
+
+            <nav class="hidden sm:flex items-center justify-center gap-1 text-sm font-semibold" aria-label="Primary">
+                <a class="rounded-lg px-3 py-2 hover:bg-black/10" href="/index.html">Home</a>
+                <a class="rounded-lg px-3 py-2 hover:bg-black/10" href="/index.html#story">Our Story</a>
+                <a class="rounded-lg px-3 py-2 hover:bg-black/10" href="/pages/menu/menu.html">Menu</a>
+
+                <a id="adminDashboardLink" href="/pages/dashboard/dashboard.html"
+                    class="rounded-lg px-3 py-2 hover:bg-black/10 font-semibold">
+                    Dashboard
+                </a>
+
+                <a class="rounded-lg px-3 py-2 hover:bg-black/10" href="/index.html#about">About Us</a>
+            </nav>
+
+            <!-- Right: Auth-->
+            <div class="hidden sm:flex items-center gap-2 justify-end" id="authArea">
+
+                <div id="authLoggedIn" class=" flex items-center gap-2">
+                    <span id="welcomeUser" class="text-sm font-semibold text-slate-900"></span>
+                    <button id="logoutBtn" class="rounded-xl px-3 py-2 text-sm font-semibold hover:bg-black/10">
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </div>
     </header>
 
-    <main class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-6 space-y-4">
+    <main class="flex-1 mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 pt-20 pb-20 space-y-4">
+      <a href="/pages/dashboard/dashboard.html" class="text-sm font-semibold rounded-xl px-3 py-2 hover:bg-black/10">
+          ← Back to Dashboard
+        </a>
       <div class="flex items-start justify-between gap-4">
         <div>
           <h1 id="caseTitle" class="text-2xl font-extrabold">Ticket Case</h1>
@@ -37,6 +65,46 @@
         <div class="p-4 border rounded-2xl bg-slate-50 text-slate-600">Loading...</div>
       </div>
     </main>
+
+    <!-- footer -->
+    <footer class="bg-gray-100 text-black pt-20 pb-8 px-4 sm:px-6 lg:px-8 border-t border-black/10">
+        <div class="mx-auto max-w-6xl">
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-12 sm:gap-16 md:gap-20">
+                <div class="col-span-1 md:col-span-2 space-y-4 flex flex-col items-start">
+                    <h2 class="text-xl font-bold text-black/90 mb-4">SaigonBistro</h2>
+                    <div class="flex space-x-4 pt-2">
+                        <img class="w-6 h-6 cursor-pointer opacity-75 hover:opacity-100 transition"
+                            src="/assets/images/ig-icon.png" alt="Instagram" />
+                        <img class="w-6 h-6 cursor-pointer opacity-75 hover:opacity-100 transition"
+                            src="/assets/images/fb-icon.png" alt="Facebook" />
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <h2 class="text-xl font-bold text-black/90 mb-4">COMPANY</h2>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="/index.html" class="hover:text-black transition">Home</a></li>
+                        <li><a href="/index.html#about" class="hover:text-black transition">About Us</a></li>
+                        <li><a href="#" class="hover:text-black transition">Career</a></li>
+                        <li><a href="#" class="hover:text-black transition">Privacy Policy</a></li>
+                    </ul>
+                </div>
+
+                <div class="space-y-4">
+                    <h2 class="text-xl font-bold text-black/90 mb-4">GET IN TOUCH</h2>
+                    <ul class="space-y-2 text-sm">
+                        <li>+65 1234 5678</li>
+                        <li>contact@saigonbistro.com</li>
+                    </ul>
+                </div>
+            </div>
+            <hr class="w-full h-px my-10 bg-black/10" />
+            <p class="text-center text-sm text-slate-400">
+                © 2025 SaigonBistro.com — All Rights Reserved
+            </p>
+        </div>
+    </footer>
 
     <script type="module" src="./ticket-case.js"></script>
   </body>

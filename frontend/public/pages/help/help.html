@@ -51,7 +51,7 @@
 
                 <div id="authLoggedIn" class="hidden items-center gap-2">
                     <span id="welcomeUser" class="text-sm font-semibold text-white/90"></span>
-                    <button id="logoutBtn" class="rounded-xl px-3 py-2 text-sm font-semibold hover:bg-white/10">
+                    <button id="logoutBtn" type="button" class="rounded-xl px-3 py-2 text-sm font-semibold hover:bg-white/10">
                         Logout
                     </button>
                 </div>
@@ -94,7 +94,7 @@
                 <section id="panelCreate" class="mt-8 bg-white rounded-2xl shadow-lg border border-slate-100 p-6">
                     <h2 class="text-xl font-bold">Create a Case</h2>
 
-                    <form id="ticketForm" class="mt-4 space-y-4">
+                    <form id="ticketForm" class="mt-4 space-y-4" autocomplete="off">
                         <div>
                             <label for="subject" class="text-sm font-semibold">Subject</label>
                             <input id="subject" type="text" required maxlength="120"

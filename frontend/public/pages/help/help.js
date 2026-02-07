@@ -86,7 +86,7 @@ async function loadMyCases({ highlightTicketId, rangeDays = "all", ticketQuery =
     if (rangeDays !== "all") {
         const days = Number(rangeDays);
         const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
-        tickets = tickets.filter(t => {
+        tickets = tickets.filter((t) => {
             const tTime = t.created_at ? new Date(t.created_at).getTime() : 0;
             return tTime >= cutoff;
         });
@@ -95,7 +95,7 @@ async function loadMyCases({ highlightTicketId, rangeDays = "all", ticketQuery =
     // search by ticket number
     const q = normalizeTicketNumber(ticketQuery);
     if (q) {
-        tickets = tickets.filter(t => normalizeTicketNumber(t.ticket_number).includes(q));
+        tickets = tickets.filter((t) => normalizeTicketNumber(t.ticket_number).includes(q));
     }
 
     if (tickets.length === 0) {
@@ -111,7 +111,6 @@ async function loadMyCases({ highlightTicketId, rangeDays = "all", ticketQuery =
 
         if (highlightTicketId && t.id === highlightTicketId) tr.classList.add("bg-green-50");
 
-        // clickable ticket number
         const ticketNumber = t.ticket_number || "-";
         const detailUrl = `/pages/help/caseDetail.html?id=${encodeURIComponent(t.id)}`;
 
@@ -168,10 +167,18 @@ function setActiveTab(tab) {
     }
 }
 
+function withTimeout(promise, ms = 1200) {
+    return Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), ms)),
+    ]);
+}
 
 document.addEventListener("DOMContentLoaded", async () => {
-    await initAuthUI({ redirectAdminStaffTo: "/pages/dashboard/dashboard.html" });
+    // init header auth UI first (it shows/hides logoutBtn)
+    await initAuthUI({ redirectOnLogout: "/pages/login/login.html?next=/pages/help/help.html" });
 
+    // require login
     const session = await requireLoginOrRedirect();
     if (!session) return;
 
@@ -192,20 +199,32 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     applyCasesFilterBtn?.addEventListener("click", async () => {
-        try { await refreshCasesWithFilters(); } catch (e) { showNotice(e.message, "error"); }
+        try {
+            await refreshCasesWithFilters();
+        } catch (e) {
+            showNotice(e.message, "error");
+        }
     });
 
     clearCasesFilterBtn?.addEventListener("click", async () => {
         if (casesRange) casesRange.value = "all";
         if (ticketSearch) ticketSearch.value = "";
-        try { await loadMyCases({ rangeDays: "all", ticketQuery: "" }); } catch (e) { showNotice(e.message, "error"); }
+        try {
+            await loadMyCases({ rangeDays: "all", ticketQuery: "" });
+        } catch (e) {
+            showNotice(e.message, "error");
+        }
     });
 
-    // Optional: press Enter in search box triggers apply
+    // press Enter in search box triggers apply
     ticketSearch?.addEventListener("keydown", async (e) => {
         if (e.key === "Enter") {
             e.preventDefault();
-            try { await refreshCasesWithFilters(); } catch (err) { showNotice(err.message, "error"); }
+            try {
+                await refreshCasesWithFilters();
+            } catch (err) {
+                showNotice(err.message, "error");
+            }
         }
     });
 
@@ -215,7 +234,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         try {
             await loadMyCases({
                 rangeDays: casesRange?.value || "all",
-                ticketQuery: ticketSearch?.value || ""
+                ticketQuery: ticketSearch?.value || "",
             });
         } catch (e) {
             showNotice(e.message, "error");
@@ -223,7 +242,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     refreshCasesBtn?.addEventListener("click", async () => {
-        try { await refreshCasesWithFilters(); } catch (e) { showNotice(e.message, "error"); }
+        try {
+            await refreshCasesWithFilters();
+        } catch (e) {
+            showNotice(e.message, "error");
+        }
     });
 
     // initial tab from URL (?tab=cases)
@@ -235,17 +258,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         try {
             await loadMyCases({
                 rangeDays: casesRange?.value || "all",
-                ticketQuery: ticketSearch?.value || ""
+                ticketQuery: ticketSearch?.value || "",
             });
         } catch (e) {
             showNotice(e.message, "error");
         }
-    } else {
-        // setActiveTab("create");
     }
-
-    // default tab
-    // setActiveTab("create");
 
     if (!form) return;
 
@@ -273,19 +291,17 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             showNotice(
                 `Ticket submitted successfully. Your ticket number is <strong>${escapeHtml(ticketNumber)}</strong>. Our staff will respond soon.
-         <div class="mt-3 flex flex-wrap gap-2">
-           <button id="viewCasesBtn" class="rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800">
-             View your cases
-           </button>
-         </div>`,
+        <div class="mt-3 flex flex-wrap gap-2">
+          <button id="viewCasesBtn" class="rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800">
+            View your cases
+          </button>
+        </div>`,
                 "success"
             );
 
             form.reset();
 
-            // wire button after notice renders
             document.getElementById("viewCasesBtn")?.addEventListener("click", async () => {
-                // reset filters to show the newly created ticket for sure
                 if (casesRange) casesRange.value = "all";
                 if (ticketSearch) ticketSearch.value = "";
 
@@ -296,8 +312,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                     showNotice(e.message, "error");
                 }
             });
-            // optional: auto-switch immediately
-            // setActiveTab("cases"); await loadMyCases({ highlightTicketId: ticketId });
         } catch (err) {
             showNotice(err.message || "Something went wrong.", "error");
         } finally {

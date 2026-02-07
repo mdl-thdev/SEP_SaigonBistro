@@ -1,8 +1,5 @@
 // SEP_SaigonBistro/frontend/public/pages/dashboard/dashboard.js
 
-// Imports authentication helpers
-// initAuthUI initializes login/logout UI behavior
-// getAuthUser is renamed to readAuthUser to avoid naming conflicts and reads the logged-in user from storage
 import { initAuthUI, getAuthUser as readAuthUser } from "../../js/auth.js";
 
 const pageTitle = document.getElementById("pageTitle");
@@ -103,12 +100,6 @@ const headerEl = document.querySelector("header");
 const footerEl = document.querySelector("footer");
 const sidebarEl = document.getElementById("sidebar");
 
-function swapClasses(el, add = [], remove = []) {
-  if (!el) return;
-  remove.forEach((c) => el.classList.remove(c));
-  add.forEach((c) => el.classList.add(c));
-}
-
 function setReportsTheme(_on) {
 
   // BODY
@@ -147,7 +138,6 @@ function setReportsTheme(_on) {
   const welcome = document.getElementById("welcomeUser");
   welcome?.classList.remove("text-slate-200");
 }
-
 
 // View Orders: Renders the list of orders into the page body
 function renderOrders(orders = []) {
@@ -258,17 +248,6 @@ function parseDateOnlyToMs(dateStr, endOfDay = false) {
   return isNaN(ms) ? null : ms;
 }
 
-function starsHTML(n) {
-  const count = Number(n || 0);
-  const full = Math.max(0, Math.min(5, count));
-  const empty = 5 - full;
-  return `
-    <span class="inline-flex items-center gap-0.5" aria-label="${full} out of 5 stars">
-      ${"★".repeat(full)}${"☆".repeat(empty)}
-    </span>
-  `;
-}
-
 // GET /api/tickets (staff/admin)
 async function fetchTickets() {
   const res = await fetch("http://localhost:3000/api/tickets", { headers: { ...roleHeader } });
@@ -317,49 +296,97 @@ function buildPageItems(page, totalPages) {
   return items;
 }
 
-function paginationHTML(page, totalPages) {
-  const items = buildPageItems(page, totalPages);
-
-  return `
-    <div class="flex items-center justify-between border rounded-2xl p-4 bg-white">
-      <div class="text-sm text-slate-600">
-        Page <span class="font-semibold">${page}</span> of <span class="font-semibold">${totalPages}</span>
-      </div>
-
-      <div class="flex items-center gap-1">
-        <button id="btnPrev"
-          class="rounded-xl px-3 py-2 text-sm font-semibold border hover:bg-black/5"
-          ${page <= 1 ? "disabled" : ""}>
-          ‹
-        </button>
-
-        ${items.map((it) => {
-    if (it === "...") {
-      return `<span class="px-2 text-slate-400 select-none">…</span>`;
-    }
-    const active = it === page;
-    return `
-            <button data-page="${it}"
-              class="page-btn rounded-xl px-3 py-2 text-sm font-semibold border
-                ${active ? "bg-slate-900 text-white border-slate-900" : "hover:bg-black/5"}">
-              ${it}
-            </button>
-          `;
-  }).join("")}
-
-        <button id="btnNext"
-          class="rounded-xl px-3 py-2 text-sm font-semibold border hover:bg-black/5"
-          ${page >= totalPages ? "disabled" : ""}>
-          ›
-        </button>
-      </div>
-    </div>
-  `;
+async function fetchOrdersForLookup() {
+  const res = await fetch("http://localhost:3000/api/orders", { headers: { ...roleHeader } });
+  if (!res.ok) return [];
+  const data = await res.json().catch(() => ({}));
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data.orders)) return data.orders;
+  return [];
 }
 
 async function loadTicketsUI() {
-  // state lives only while this tab is active
-  const allTickets = await fetchTickets();
+  const allTicketsRaw = await fetchTickets();
+
+  const orders = await fetchOrdersForLookup();
+
+  const orderLookup = new Map();
+
+  // helper: put multiple keys -> same public id
+  function putKey(k, pub) {
+    const key = (k ?? "").toString().trim();
+    const p = (pub ?? "").toString().trim();
+    if (!key || !p) return;
+    orderLookup.set(key, p);
+    orderLookup.set(key.toLowerCase(), p);
+  }
+
+  orders.forEach((o) => {
+    const pub =
+      (o.public_orderid ?? o.publicOrderId ?? o.public_order_id ?? "").toString().trim();
+
+    // try every possible “id” field your orders API might return
+    const keys = [
+      o.id,
+      o.order_id,
+      o.orderId,
+      o.uuid,
+      o.order_uuid,
+      o.orderUuid,
+    ];
+
+    keys.forEach((k) => putKey(k, pub));
+
+    // also allow direct searching by SB-...
+    putKey(pub, pub);
+  });
+
+  // Fetch profiles so we can map owner_id <-> email/name
+  let profiles = [];
+  try {
+    profiles = await fetchStaffs(); // uses /api/profiles
+  } catch (e) {
+    profiles = [];
+  }
+
+  const byId = new Map(profiles.map(p => [String(p.id), p]));
+  const byEmail = new Map(profiles.map(p => [safeLower(p.email), p]));
+
+  // Enrich tickets so filters can work with email/name
+  const allTickets = allTicketsRaw.map(t => {
+    const owner = t.owner_id ? byId.get(String(t.owner_id)) : null;
+
+    const rawOrder = (t.order_id ?? t.orderId ?? t.order_uuid ?? t.orderUuid ?? "").toString().trim();
+
+    const rawUpper = rawOrder.toUpperCase();
+    const publicOrderId =
+      rawUpper.startsWith("SB-")
+        ? rawUpper
+        : (orderLookup.get(rawOrder) || orderLookup.get(rawOrder.toLowerCase()) || "");
+
+    return {
+      ...t,
+      owner_email: t.owner_email || owner?.email || "",
+      owner_name: t.owner_name || owner?.display_name || owner?.name || owner?.full_name || "",
+      public_orderid: publicOrderId,
+    };
+  });
+
+  const STAFF_SET = Array.from(
+    new Map(
+      allTickets
+        .filter(t => t.owner_id && (t.owner_name || t.owner_email))
+        .map(t => [
+          t.owner_id,
+          {
+            id: t.owner_id,
+            label: t.owner_name
+              ? `${t.owner_name} (${t.owner_email || t.owner_id})`
+              : (t.owner_email || t.owner_id)
+          }
+        ])
+    ).values()
+  );
 
   const STATUS_OPTIONS = ["All", "New", "Pending Review", "Waiting Customer Response", "Resolved", "Reopened"];
 
@@ -378,12 +405,14 @@ async function loadTicketsUI() {
     orderId: "",
     ownerEmailOrId: "",
     category: "All",
+    // staff: "All",
     page: 1,
   };
 
   function applyFilters(list) {
     const sStatus = safeLower(state.status);
     const sCat = safeLower(state.category);
+    // const sStaff = safeLower(state.staff);
 
     const startMs = parseDateOnlyToMs(state.startDate, false);
     const endMs = parseDateOnlyToMs(state.endDate, true);
@@ -396,8 +425,12 @@ async function loadTicketsUI() {
     const fOwner = safeLower(state.ownerEmailOrId);
 
     return list.filter((t) => {
+      const staffBlob = `${safeLower(t.owner_id)} ${safeLower(t.owner_email)} ${safeLower(t.owner_name)}`;
       // status
       if (sStatus !== "all" && safeLower(t.status) !== sStatus) return false;
+
+      // staff/owner filter
+      // if (sStaff !== "all" && !staffBlob.includes(sStaff)) return false;
 
       // time range (created_at)
       const createdMs = t.created_at ? new Date(t.created_at).getTime() : null;
@@ -410,7 +443,21 @@ async function loadTicketsUI() {
 
       // ticket number / order id
       if (fTicketNo && !safeLower(t.ticket_number).includes(fTicketNo)) return false;
-      if (fOrderId && !safeLower(t.order_id).includes(fOrderId)) return false;
+
+      if (fOrderId) {
+        const orderBlob = [
+          t.public_orderid,       // "SB-...." (computed)
+          t.order_id,             // possible uuid
+          t.orderId,              // possible uuid (camelCase)
+          t.order_uuid,           // possible uuid
+          t.orderUuid,            // possible uuid
+        ]
+          .filter(Boolean)
+          .map(safeLower)
+          .join(" ");
+
+        if (!orderBlob.includes(fOrderId)) return false;
+      }
 
       // owner (you currently only have owner_id in list)
       // This input supports owner_id (and future owner email if you add it later).
@@ -457,6 +504,22 @@ async function loadTicketsUI() {
     const filtered = applyFilters(allTickets);
     const { items, total, totalPages, page } = paginate(filtered);
 
+    const STAFF_SET_FILTERED = Array.from(
+      new Map(
+        filtered
+          .filter(t => t.owner_id && (t.owner_name || t.owner_email))
+          .map(t => [
+            t.owner_id,
+            {
+              id: t.owner_id,
+              label: t.owner_name
+                ? `${t.owner_name} (${t.owner_email || t.owner_id})`
+                : (t.owner_email || t.owner_id)
+            }
+          ])
+      ).values()
+    );
+
     pageActions.innerHTML = `
       <div class="text-sm text-slate-600">
         <span class="font-semibold">${total}</span> ticket(s)
@@ -466,6 +529,7 @@ async function loadTicketsUI() {
     const hasAnyFilter =
       state.status !== "All" ||
       state.category !== "All" ||
+      // state.staff !== "All" ||
       !!state.startDate ||
       !!state.endDate ||
       !!state.customerEmail ||
@@ -523,11 +587,26 @@ async function loadTicketsUI() {
     </div>
 
     <div class="mt-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+    <label class="space-y-1">
+  <span class="text-xs font-semibold text-slate-700">Category</span>
+  <select id="fCategory" class="w-full rounded-xl border px-3 py-2 text-sm">
+    <option ${state.category === "All" ? "selected" : ""}>All</option>
+    ${CATEGORY_SET.map((c) => `
+      <option ${c === state.category ? "selected" : ""}>${escapeHtml(c)}</option>
+    `).join("")}
+  </select>
+</label>
       <label class="space-y-1">
         <span class="text-xs font-semibold text-slate-700">Ticket Status</span>
         <select id="fStatus" class="w-full rounded-xl border px-3 py-2 text-sm">
           ${STATUS_OPTIONS.map((x) => `<option ${x === state.status ? "selected" : ""}>${escapeHtml(x)}</option>`).join("")}
         </select>
+      </label>
+
+      <label class="space-y-1">
+        <span class="text-xs font-semibold text-slate-700">Ticket Number</span>
+        <input id="fTicketNumber" value="${escapeHtml(state.ticketNumber)}" placeholder="e.g. T-000011"
+          class="w-full rounded-xl border px-3 py-2 text-sm" />
       </label>
 
       <label class="space-y-1">
@@ -545,30 +624,6 @@ async function loadTicketsUI() {
       <label class="space-y-1">
         <span class="text-xs font-semibold text-slate-700">Customer Email</span>
         <input id="fCustomerEmail" value="${escapeHtml(state.customerEmail)}" placeholder="e.g. user@email.com"
-          class="w-full rounded-xl border px-3 py-2 text-sm" />
-      </label>
-
-      <label class="space-y-1">
-        <span class="text-xs font-semibold text-slate-700">Customer Phone</span>
-        <input id="fCustomerPhone" value="${escapeHtml(state.customerPhone)}" placeholder="e.g. +65..."
-          class="w-full rounded-xl border px-3 py-2 text-sm" />
-      </label>
-
-      <label class="space-y-1">
-        <span class="text-xs font-semibold text-slate-700">Keyword</span>
-        <input id="fKeyword" value="${escapeHtml(state.keyword)}" placeholder="Search subject / description / customer..."
-          class="w-full rounded-xl border px-3 py-2 text-sm" />
-      </label>
-
-      <label class="space-y-1">
-        <span class="text-xs font-semibold text-slate-700">Ticket Number</span>
-        <input id="fTicketNumber" value="${escapeHtml(state.ticketNumber)}" placeholder="e.g. TCK-000123"
-          class="w-full rounded-xl border px-3 py-2 text-sm" />
-      </label>
-
-      <label class="space-y-1">
-        <span class="text-xs font-semibold text-slate-700">Order ID</span>
-        <input id="fOrderId" value="${escapeHtml(state.orderId)}" placeholder="e.g. 123"
           class="w-full rounded-xl border px-3 py-2 text-sm" />
       </label>
 
@@ -591,31 +646,6 @@ async function loadTicketsUI() {
     </div>
   </div>
 
-
-      <!-- Middle: category chips -->
-      <div class="border rounded-2xl p-4 bg-white">
-        <div class="flex items-center justify-between gap-3">
-          <div class="text-sm font-bold">Issue Categories</div>
-          <div class="text-xs text-slate-500">Click to filter</div>
-        </div>
-
-        <div class="mt-3 flex flex-wrap gap-2">
-      <button data-cat="All"
-        class="cat-chip rounded-full px-3 py-1.5 text-xs font-semibold border ${state.category === "All" ? "bg-slate-900 text-white" : "hover:bg-black/5"}">
-        All
-      </button>
-      ${CATEGORY_SET.map((c) => {
-        const active = c === state.category;
-        return `
-          <button data-cat="${escapeHtml(c)}"
-            class="cat-chip rounded-full px-3 py-1.5 text-xs font-semibold border ${active ? "bg-slate-900 text-white" : "hover:bg-black/5"}">
-            ${escapeHtml(c)}
-          </button>
-        `;
-      }).join("")}
-    </div>
-  </div>
-
       <!-- Tickets list -->
       <div class="space-y-3">
         ${items.length ? items.map((t) => {
@@ -634,7 +664,9 @@ async function loadTicketsUI() {
                   <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold ${badgeClass}">
                     ${status}
                   </span>
-                  ${t.order_id ? `<span class="text-xs text-slate-500">Order: ${t.order_id}</span>` : ""}
+                  ${(t.public_orderid || t.order_id || t.orderId) ? 
+  `<span class="text-xs text-slate-500">Order: ${escapeHtml(t.public_orderid || t.order_id || t.orderId)}</span>` 
+  : ""}
                 </div>
 
                 <div class="text-sm text-slate-700 font-semibold truncate">
@@ -645,7 +677,12 @@ async function loadTicketsUI() {
                   <span><span class="font-semibold">Customer:</span> ${t.customer_name ?? "-"} (${t.customer_email ?? "-"})</span>
                   ${t.customer_phone ? `<span><span class="font-semibold">Phone:</span> ${t.customer_phone}</span>` : ""}
                   <span><span class="font-semibold">Category:</span> ${t.category ?? "-"}</span>
-                  <span><span class="font-semibold">Owner:</span> ${t.owner_id ?? "Unassigned"}</span>
+                  <span><span class="font-semibold">Owner:</span>
+                  ${t.owner_name
+            ? `${escapeHtml(t.owner_name)} (${escapeHtml(t.owner_email || t.owner_id)})`
+            : escapeHtml(t.owner_email || t.owner_id || "Unassigned")}
+                  </span>
+
                 </div>
 
                 <div class="text-xs text-slate-500">
@@ -723,11 +760,12 @@ async function loadTicketsUI() {
       state.startDate = $("fStart").value;
       state.endDate = $("fEnd").value;
       state.customerEmail = $("fCustomerEmail").value;
-      state.customerPhone = $("fCustomerPhone").value;
-      state.keyword = $("fKeyword").value;
+      // state.customerPhone = $("fCustomerPhone").value;
+      // state.keyword = $("fKeyword").value;
       state.ticketNumber = $("fTicketNumber").value;
       state.orderId = $("fOrderId").value;
       state.ownerEmailOrId = $("fOwner").value;
+      state.category = $("fCategory").value;
       state.page = 1;
       render();
     });
@@ -737,8 +775,8 @@ async function loadTicketsUI() {
       state.startDate = "";
       state.endDate = "";
       state.customerEmail = "";
-      state.customerPhone = "";
-      state.keyword = "";
+      // state.customerPhone = "";
+      // state.keyword = "";
       state.ticketNumber = "";
       state.orderId = "";
       state.ownerEmailOrId = "";
@@ -746,26 +784,7 @@ async function loadTicketsUI() {
       state.page = 1;
       render();
     });
-
-    document.querySelectorAll(".cat-chip").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        state.category = btn.dataset.cat || "All";
-        state.page = 1;
-        render();
-      });
-    });
-
-    $("btnPrev")?.addEventListener("click", () => {
-      state.page = Math.max(1, state.page - 1);
-      render();
-    });
-
-    $("btnNext")?.addEventListener("click", () => {
-      state.page = state.page + 1;
-      render();
-    });
   }
-
   render();
 }
 
@@ -976,6 +995,15 @@ async function loadReportsUI() {
     const sStatus = safeLower(state.status);
     const sCat = safeLower(state.category);
 
+    // const filteredItems = items.filter(t => {
+    //   const catMatch =
+    //     state.category === "All" || t.category === state.category;
+
+    //   const staffMatch =
+    //     state.staff === "All" || t.owner_id === state.staff;
+
+    //   return catMatch && staffMatch;
+    // });
     return list.filter((t) => {
       const createdMs = t.created_at ? new Date(t.created_at).getTime() : null;
 
@@ -1199,6 +1227,8 @@ async function loadReportsUI() {
         </div>
       </div>
     `;
+
+    const getVal = (id) => (document.getElementById(id)?.value ?? "");
 
     // wire events
     const $ = (id) => document.getElementById(id);

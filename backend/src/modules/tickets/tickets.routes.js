@@ -18,17 +18,35 @@ function isAdminUser(req) {
 // POST Create Ticket (customer)
 router.post("/", requireAuth, async (req, res) => {
   try {
-    const { category, subject, description, customer_phone, order_id } = req.body || {};
+    const { category, subject, description, customer_phone, order_publicid } = req.body || {};
 
     if (!category || !subject || !description) {
       return res.status(400).json({ message: "category, subject, description are required" });
     }
 
-    const { data: profile } = await req.sb
-      .from("profiles")
-      .select("display_name")
-      .eq("id", req.user.id)
-      .single();
+    // Resolve public order code -> orders.id (uuid)
+    let resolvedOrderId = null;
+
+    if (order_publicid && String(order_publicid).trim()) {
+      const code = String(order_publicid).trim().toUpperCase();
+
+      const { data: order, error: oErr } = await req.sb
+        .from("orders")
+        .select("id, customer_id, public_orderid")
+        .eq("public_orderid", code)
+        .maybeSingle();
+
+      if (oErr) return res.status(400).json({ message: oErr.message });
+
+      // Security check: order must belong to the same customer
+      if (!order || order.customer_id !== req.user.id) {
+        return res.status(400).json({ message: "Invalid Order ID." });
+      }
+
+      resolvedOrderId = order.id; // uuid
+    }
+
+    const { data: profile } = await req.sb.from("profiles").select("display_name").eq("id", req.user.id).single();
 
     const customer_name = profile?.display_name || req.user.email || "Customer";
     const customer_email = req.user.email || "";
@@ -41,14 +59,14 @@ router.post("/", requireAuth, async (req, res) => {
           customer_name,
           customer_email,
           customer_phone: customer_phone || null,
-          order_id: order_id || null,
+          order_id: resolvedOrderId,
           category,
           subject,
           description,
           status: "New",
         },
       ])
-      .select("id, ticket_number, status, owner_id, created_at, updated_at")
+      .select("id, ticket_number, status, owner_id, created_at, updated_at, order_id, customer_phone")
       .single();
 
     if (error) return res.status(400).json({ message: error.message });
@@ -76,7 +94,7 @@ router.get("/mine", requireAuth, async (req, res) => {
   }
 });
 
-// GET My ticket detail + comments (customer)
+// GET My ticket detail + comments + feedback + allow_customer_reply (customer)
 router.get("/mine/:id", requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
@@ -84,14 +102,16 @@ router.get("/mine/:id", requireAuth, async (req, res) => {
     // 1) ticket must belong to customer
     const { data: ticket, error: tErr } = await req.sb
       .from("tickets")
-      .select("id, ticket_number, category, subject, description, status, created_at, updated_at")
+      .select(
+        "id, ticket_number, category, subject, description, status, customer_phone, order_id, created_at, updated_at, customer_email"
+      )
       .eq("id", id)
       .eq("customer_id", req.user.id)
       .single();
 
     if (tErr || !ticket) return res.status(404).json({ message: "Ticket not found" });
 
-    // 2) comments
+    // 2) comments (admin client to read)
     const { data: comments, error: cErr } = await supabaseAdmin
       .from("ticket_comments")
       .select("id, author_role, author_email, message, created_at")
@@ -100,7 +120,7 @@ router.get("/mine/:id", requireAuth, async (req, res) => {
 
     if (cErr) console.error("TICKET COMMENTS ERROR:", cErr);
 
-    // compute allow_customer_reply
+    // 3) compute allow_customer_reply (5-day rule)
     let allow_customer_reply = true;
     let reply_deadline = null;
 
@@ -121,14 +141,31 @@ router.get("/mine/:id", requireAuth, async (req, res) => {
         reply_deadline = new Date(deadlineMs).toISOString();
         allow_customer_reply = Date.now() <= deadlineMs;
       }
-    } catch (e) {
-      // if error, default allow (and server still enforces on POST)
-    } res.json({
+    } catch {
+      // default allow if error
+    }
+
+    // 4) feedback (optional)
+    let feedback = null;
+    try {
+      const { data: fData } = await req.sb
+        .from("ticket_feedback")
+        .select("id, ticket_id, stars, comment, created_at")
+        .eq("ticket_id", id)
+        .maybeSingle();
+      if (fData) feedback = fData;
+    } catch {
+      // ignore
+    }
+
+    // respond ONCE
+    res.json({
       success: true,
       ticket,
       comments: Array.isArray(comments) ? comments : [],
       allow_customer_reply,
       reply_deadline,
+      feedback,
     });
   } catch (err) {
     console.error("MY TICKET DETAIL ERROR:", err);
@@ -166,13 +203,9 @@ router.post("/mine/:id/comments", requireAuth, async (req, res) => {
       .limit(1)
       .maybeSingle();
 
-    if (lcErr) {
-      console.error("LAST STAFF COMMENT ERROR:", lcErr);
-    }
+    if (lcErr) console.error("LAST STAFF COMMENT ERROR:", lcErr);
 
-    // 3) Enforce 5-day rule:
-    // - If there is a staff/admin reply, customer can reply only within 5 days from that time
-    // - If there is NO staff/admin reply yet, allow customer to add more info anytime
+    // 3) Enforce 5-day rule
     if (lastStaffComment?.created_at) {
       const last = new Date(lastStaffComment.created_at).getTime();
       const now = Date.now();
@@ -202,15 +235,21 @@ router.post("/mine/:id/comments", requireAuth, async (req, res) => {
 
     if (cErr) return res.status(400).json({ message: cErr.message });
 
-    // 5) If ticket was Resolved, set to Reopened (keep owner_id so staff can continue)
-    // You can decide if you want "Reopened" or "Waiting Customer Response".
-    const nextStatus = ticket.status === "Resolved" ? "Reopened" : ticket.status;
+    // 5) If ticket is Resolved -> Reopened AND UNASSIGN so another staff can claim
+    let nextStatus = ticket.status;
 
-    if (nextStatus !== ticket.status) {
-      await req.sb
+    if (String(ticket.status || "").toLowerCase() === "resolved") {
+      nextStatus = "Reopened";
+
+      const { error: upErr } = await supabaseAdmin
         .from("tickets")
-        .update({ status: nextStatus })
+        .update({ status: nextStatus, owner_id: null })
         .eq("id", id);
+
+      if (upErr) {
+        console.error("REOPEN/UNASSIGN UPDATE ERROR:", upErr);
+        return res.status(500).json({ message: "Reply saved, but failed to reopen the ticket." });
+      }
     }
 
     res.status(201).json({ success: true, comment, status: nextStatus });
@@ -220,6 +259,58 @@ router.post("/mine/:id/comments", requireAuth, async (req, res) => {
   }
 });
 
+// Customer: POST feedback on own ticket (only when Resolved, only once)
+router.post("/mine/:id/feedback", requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { stars, comment } = req.body || {};
+
+    const s = Number(stars);
+    if (!Number.isInteger(s) || s < 1 || s > 5) {
+      return res.status(400).json({ message: "stars must be an integer from 1 to 5" });
+    }
+
+    // ticket must belong to customer
+    const { data: ticket, error: tErr } = await req.sb
+      .from("tickets")
+      .select("id, customer_id, status")
+      .eq("id", id)
+      .eq("customer_id", req.user.id)
+      .single();
+
+    if (tErr || !ticket) return res.status(404).json({ message: "Ticket not found" });
+
+    if (String(ticket.status || "").toLowerCase() !== "resolved") {
+      return res.status(403).json({ message: "Feedback can only be submitted after the ticket is resolved." });
+    }
+
+    // prevent duplicates (one feedback per ticket)
+    const { data: existing } = await req.sb.from("ticket_feedback").select("id").eq("ticket_id", id).maybeSingle();
+
+    if (existing?.id) {
+      return res.status(409).json({ message: "Feedback already submitted for this ticket." });
+    }
+
+    const payload = {
+      ticket_id: id,
+      stars: s,
+      comment: comment ? String(comment).trim().slice(0, 1000) : null,
+    };
+
+    const { data, error } = await req.sb
+      .from("ticket_feedback")
+      .insert([payload])
+      .select("id, ticket_id, stars, comment, created_at")
+      .single();
+
+    if (error) return res.status(400).json({ message: error.message });
+
+    res.status(201).json({ success: true, feedback: data });
+  } catch (err) {
+    console.error("POST FEEDBACK ERROR:", err);
+    res.status(500).json({ message: "Failed to submit feedback" });
+  }
+});
 
 /* =========================
    Staff/Admin APIs
@@ -229,9 +320,13 @@ router.post("/mine/:id/comments", requireAuth, async (req, res) => {
 router.get("/", requireStaffOrAdmin, async (req, res) => {
   try {
     const { data, error } = await req.sb
-      .from("tickets")
+      .from("tickets_with_owner")
       .select(
-        "id, ticket_number, customer_name, customer_email, customer_phone, order_id, category, subject, status, owner_id, created_at, updated_at"
+        `
+        id, ticket_number, customer_name, customer_email, customer_phone,
+        order_id, category, subject, status, owner_id, owner_name, owner_email, created_at, updated_at,
+        orders:order_id ( public_orderid )
+      `
       )
       .order("created_at", { ascending: false });
 
@@ -252,12 +347,42 @@ router.get("/", requireStaffOrAdmin, async (req, res) => {
   }
 });
 
+// GET Assignees list (admin only) - staff + admin
+router.get("/assignees/list", requireAdmin, async (req, res) => {
+  try {
+    const { data, error } = await req.sb
+      .from("profiles")
+      .select("id, display_name, email, role")
+      .in("role", ["staff", "admin"])
+      .order("role", { ascending: true })
+      .order("display_name", { ascending: true });
+
+    if (error) return res.status(400).json({ message: error.message });
+
+    res.json({ success: true, assignees: data || [] });
+  } catch (err) {
+    console.error("GET ASSIGNEES ERROR:", err);
+    res.status(500).json({ message: "Failed to load assignees" });
+  }
+});
+
 // GET Ticket detail + comments + feedback (staff/admin)
 router.get("/:id", requireStaffOrAdmin, async (req, res) => {
   try {
     const { id } = req.params;
 
-    const { data: ticket, error: tErr } = await req.sb.from("tickets").select("*").eq("id", id).single();
+    const { data: ticket, error: tErr } = await req.sb
+      .from("tickets")
+      .select(
+        `
+        *,
+        orders:order_id ( id, public_orderid ),
+        owner:owner_id ( id, display_name, email )
+      `
+      )
+      .eq("id", id)
+      .single();
+
     if (tErr || !ticket) return res.status(404).json({ message: tErr?.message || "Ticket not found" });
 
     // comments
@@ -271,21 +396,21 @@ router.get("/:id", requireStaffOrAdmin, async (req, res) => {
 
       if (!cErr && Array.isArray(cData)) comments = cData;
     } catch {
-      // ignore if table doesn't exist
+      // ignore
     }
 
-    // feedback
+    // feedback (use maybeSingle so no error when none)
     let feedback = null;
     try {
       const { data: fData, error: fErr } = await req.sb
         .from("ticket_feedback")
         .select("id, ticket_id, stars, comment, created_at")
         .eq("ticket_id", id)
-        .single();
+        .maybeSingle();
 
       if (!fErr && fData) feedback = fData;
     } catch {
-      // ignore if table doesn't exist
+      // ignore
     }
 
     res.json({ success: true, ticket, comments, feedback });
@@ -338,8 +463,6 @@ router.post("/:id/comments", requireStaffOrAdmin, async (req, res) => {
 });
 
 // PATCH Assign Ticket to Self (staff/admin)
-// - staff can only take unassigned tickets (or re-assign to themselves if already theirs)
-// - admin can self-assign anytime
 router.patch("/:id/assign-self", requireStaffOrAdmin, async (req, res) => {
   try {
     const { id } = req.params;
@@ -347,7 +470,7 @@ router.patch("/:id/assign-self", requireStaffOrAdmin, async (req, res) => {
 
     const { data: existing, error: findErr } = await req.sb
       .from("tickets")
-      .select("id, owner_id")
+      .select("id, owner_id, status")
       .eq("id", id)
       .single();
 
@@ -355,9 +478,10 @@ router.patch("/:id/assign-self", requireStaffOrAdmin, async (req, res) => {
 
     const admin = isAdminUser(req);
 
-    // staff cannot steal ticket from another staff
     if (!admin && existing.owner_id && existing.owner_id !== req.user.id) {
-      return res.status(403).json({ message: "Ticket is already assigned to another staff." });
+      if ((existing.status || "").toLowerCase() !== "reopened") {
+        return res.status(403).json({ message: "Ticket is assigned to another staff." });
+      }
     }
 
     const payload = {
@@ -386,8 +510,6 @@ router.patch("/:id/assign-self", requireStaffOrAdmin, async (req, res) => {
 });
 
 // PATCH Update Ticket Status
-// - staff: only if assigned owner
-// - admin: allowed anytime
 router.patch("/:id/status", requireStaffOrAdmin, async (req, res) => {
   try {
     const { id } = req.params;
@@ -397,12 +519,7 @@ router.patch("/:id/status", requireStaffOrAdmin, async (req, res) => {
       return res.status(400).json({ message: "Invalid status" });
     }
 
-    const { data: existing, error: findErr } = await req.sb
-      .from("tickets")
-      .select("id, owner_id")
-      .eq("id", id)
-      .single();
-
+    const { data: existing, error: findErr } = await req.sb.from("tickets").select("id, owner_id").eq("id", id).single();
     if (findErr || !existing) return res.status(404).json({ message: "Ticket not found" });
 
     const admin = isAdminUser(req);
@@ -426,26 +543,37 @@ router.patch("/:id/status", requireStaffOrAdmin, async (req, res) => {
   }
 });
 
-// PATCH Admin assign Ticket to Staff (admin only)
-router.patch("/:id/assign-staff", requireAdmin, async (req, res) => {
+// PATCH Admin assign Ticket to Owner (staff/admin) OR unassign (admin only)
+router.patch("/:id/assign-owner", requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { owner_id, status } = req.body || {};
 
-    if (!owner_id) return res.status(400).json({ message: "owner_id is required" });
-
-    const { data: staffProfile, error: pErr } = await req.sb
-      .from("profiles")
-      .select("id, role, display_name")
-      .eq("id", owner_id)
-      .single();
-
-    if (pErr || !staffProfile) return res.status(400).json({ message: "Invalid owner_id" });
-    if (staffProfile.role !== "staff") {
-      return res.status(400).json({ message: "owner_id must belong to a staff user" });
+    if (owner_id === undefined) {
+      return res.status(400).json({ message: "owner_id is required (can be null)" });
     }
 
-    const payload = { owner_id };
+    let assignedProfile = null;
+
+    if (owner_id) {
+      const { data: profile, error: pErr } = await req.sb
+        .from("profiles")
+        .select("id, role, display_name, email")
+        .eq("id", owner_id)
+        .single();
+
+      if (pErr || !profile) return res.status(400).json({ message: "Invalid owner_id" });
+
+      const r = String(profile.role || "").toLowerCase();
+      if (r !== "staff" && r !== "admin") {
+        return res.status(400).json({ message: "owner_id must belong to a staff/admin user" });
+      }
+
+      assignedProfile = profile;
+    }
+
+    const payload = { owner_id: owner_id || null };
+
     if (status) {
       if (!TICKET_STATUSES.has(status)) return res.status(400).json({ message: "Invalid status" });
       payload.status = status;
@@ -463,11 +591,13 @@ router.patch("/:id/assign-staff", requireAdmin, async (req, res) => {
     res.json({
       success: true,
       ticket: data,
-      assigned_to: { id: staffProfile.id, name: staffProfile.display_name },
+      assigned_to: assignedProfile
+        ? { id: assignedProfile.id, name: assignedProfile.display_name, email: assignedProfile.email, role: assignedProfile.role }
+        : null,
     });
   } catch (err) {
-    console.error("ASSIGN STAFF ERROR:", err);
-    res.status(500).json({ message: "Failed to assign ticket to staff" });
+    console.error("ASSIGN OWNER ERROR:", err);
+    res.status(500).json({ message: "Failed to assign ticket owner" });
   }
 });
 
