@@ -3,11 +3,7 @@
 import { initAuthUI, getAuthUser } from "../../js/auth.js";
 import { formatMoney } from "../../js/utils.js";
 import { supabase } from "../../js/supabaseClient.js";
-
-const API_BASE =
-  window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-    ? "http://localhost:3000"
-    : "https://fed-saigonbistro.onrender.com";
+import { API_BASE_URL } from "../../js/api.js";
 
 const statusBox = document.getElementById("statusBox");
 
@@ -90,7 +86,7 @@ async function fetchOrderFromServer(orderUuid) {
 
   if (!session?.access_token) throw new Error("Not authenticated");
 
-  const res = await fetch(`${API_BASE}/api/orders/${encodeURIComponent(orderUuid)}`, {
+  const res = await fetch(`${API_BASE_URL}/api/orders/${encodeURIComponent(orderUuid)}`, {
     headers: {
       Accept: "application/json",
       Authorization: `Bearer ${session.access_token}`,
@@ -127,7 +123,12 @@ async function init() {
   }
 }
 
+const isGitHubPages = window.location.hostname.includes("github.io");
+const BASE_PATH = isGitHubPages ? "/SEP_SaigonBistro" : "";
+const withBasePath = (p) => (p && p.startsWith("/") ? `${BASE_PATH}${p}` : p);
+
+
 document.addEventListener("DOMContentLoaded", () => {
-  initAuthUI({ redirectOnLogout: "/index.html" });
+  initAuthUI({ redirectOnLogout: withBasePath("/index.html") });
   init();
 });

@@ -1,6 +1,7 @@
 // SEP_SaigonBistro/frontend/public/pages/dashboard/ticket-case.js
 
 import { initAuthUI, getAuthUser as readAuthUser } from "../../js/auth.js";
+import { API_BASE_URL } from "../../js/api.js";
 
 const caseTitle = document.getElementById("caseTitle");
 const caseMeta = document.getElementById("caseMeta");
@@ -75,7 +76,7 @@ function badgeClassForStatus(status) {
 /* ---------------- api ---------------- */
 
 async function api(path, options = {}) {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",

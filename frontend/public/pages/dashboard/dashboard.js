@@ -1,6 +1,7 @@
 // SEP_SaigonBistro/frontend/public/pages/dashboard/dashboard.js
 
 import { initAuthUI, getAuthUser as readAuthUser } from "../../js/auth.js";
+import { API_BASE_URL } from "../../js/api.js";
 
 const pageTitle = document.getElementById("pageTitle");
 const pageActions = document.getElementById("pageActions");
@@ -185,7 +186,7 @@ function renderOrders(orders = []) {
 // View Orders:
 // GET /api/orders
 async function fetchOrders() {
-  const res = await fetch("http://localhost:3000/api/orders", { headers: { ...roleHeader } })
+  const res = await fetch(`${API_BASE_URL}/api/orders`, { headers: { ...roleHeader } })
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -200,7 +201,7 @@ async function fetchOrders() {
 
 // PATCH /api/orders/:id
 async function updateOrderStatus(orderId, status) {
-  const res = await fetch(`http://localhost:3000/api/orders/${encodeURIComponent(orderId)}`, {
+  const res = await fetch(`${API_BASE_URL}/api/orders/${encodeURIComponent(orderId)}`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -250,7 +251,7 @@ function parseDateOnlyToMs(dateStr, endOfDay = false) {
 
 // GET /api/tickets (staff/admin)
 async function fetchTickets() {
-  const res = await fetch("http://localhost:3000/api/tickets", { headers: { ...roleHeader } });
+  const res = await fetch(`${API_BASE_URL}/api/tickets`, { headers: { ...roleHeader } });
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -297,7 +298,7 @@ function buildPageItems(page, totalPages) {
 }
 
 async function fetchOrdersForLookup() {
-  const res = await fetch("http://localhost:3000/api/orders", { headers: { ...roleHeader } });
+  const res = await fetch(`${API_BASE_URL}/api/orders`, { headers: { ...roleHeader } });
   if (!res.ok) return [];
   const data = await res.json().catch(() => ({}));
   if (Array.isArray(data)) return data;
@@ -798,7 +799,7 @@ async function loadTicketsUI() {
 //   - Array of staff objects
 //   - { staffs: [...] } or { staff: [...] }
 async function fetchStaffs() {
-  const res = await fetch("http://localhost:3000/api/profiles", {
+  const res = await fetch(`${API_BASE_URL}/api/profiles`, {
     headers: { ...roleHeader },
   });
 

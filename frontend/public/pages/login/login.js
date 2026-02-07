@@ -1,7 +1,7 @@
 // SEP_SaigonBistro/frontend/pages/login/login.js
 
-import { supabase } from "/js/supabaseClient.js";
-import { getMe } from "/js/api.js";
+import { supabase } from "../../js/supabaseClient.js";
+import { getMe } from "../../js/api.js";
 
 // Detect env
 const isGitHubPages = window.location.hostname.includes("github.io");

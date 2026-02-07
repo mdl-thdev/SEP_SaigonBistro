@@ -1,9 +1,8 @@
 // SEP_SaigonBistro/frontend/public/pages/help/help.js
 
-import { supabase } from "/js/supabaseClient.js";
-import { initAuthUI } from "/js/auth.js";
-
-const API_BASE = "http://127.0.0.1:3000";
+import { supabase } from "../../js/supabaseClient.js";
+import { initAuthUI } from "../../js/auth.js";
+import { API_BASE_URL } from "../../js/api.js";
 
 function showNotice(message, type = "info") {
     const el = document.getElementById("notice");
@@ -50,7 +49,7 @@ async function apiFetch(path, { method = "GET", body } = {}) {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.access_token) throw new Error("Not authenticated.");
 
-    const res = await fetch(`${API_BASE}${path}`, {
+    const res = await fetch(`${API_BASE_URL}${path}`, {
         method,
         headers: {
             "Content-Type": "application/json",

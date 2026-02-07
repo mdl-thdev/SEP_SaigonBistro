@@ -68,6 +68,14 @@ function closeDrawer() {
 // =======================
 // Path resolver
 // =======================
+const isGitHubPages = window.location.hostname.includes("github.io");
+const BASE_PATH = isGitHubPages ? "/SEP_SaigonBistro" : "";
+
+function withBasePath(path) {
+  if (!path || !path.startsWith("/")) return path;
+  return `${BASE_PATH}${path}`;
+}
+
 function resolvePublicPath(p, fallback = PLACEHOLDER_SVG_DATA_URI) {
   if (!p) return fallback;
 
@@ -76,12 +84,12 @@ function resolvePublicPath(p, fallback = PLACEHOLDER_SVG_DATA_URI) {
   // external
   if (s.startsWith("http://") || s.startsWith("https://")) return s;
 
-  // already absolute
-  if (s.startsWith("/")) return s;
+  // already absolute -> prefix base path for GitHub Pages
+  if (s.startsWith("/")) return withBasePath(s);
 
   // DB values like "./assets/..." or "../assets/..."
   const cleaned = s.replace(/^(\.\/)+/, "").replace(/^(\.\.\/)+/, "");
-  return "/" + cleaned;
+  return withBasePath("/" + cleaned);
 }
 
 // =======================
@@ -163,15 +171,14 @@ function createItemCardHTML(item, count) {
           class="w-full h-full object-cover">
 
         <div class="absolute bottom-4 right-4 bg-white rounded-full shadow-lg p-1">
-          ${
-            count === 0
-              ? `
+          ${count === 0
+      ? `
                 <button data-id="${item.id}" data-action="add"
                   class="cart-action-btn w-10 h-10 rounded-full bg-green-600 text-white grid place-items-center hover:bg-green-700 active:scale-95 transition">
                   ${iconPlus()}
                 </button>
               `
-              : `
+      : `
                 <div class="flex items-center gap-2 bg-white rounded-full px-2 py-1 shadow-lg">
                   <button data-id="${item.id}" data-action="remove"
                     class="cart-action-btn w-8 h-8 rounded-full bg-red-600 text-white grid place-items-center hover:bg-red-700 active:scale-95 transition">
@@ -186,7 +193,7 @@ function createItemCardHTML(item, count) {
                   </button>
                 </div>
               `
-          }
+    }
         </div>
       </div>
 
@@ -358,8 +365,7 @@ async function init() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  const isGitHubPages = window.location.hostname.includes("github.io");
-  const redirectOnLogout = isGitHubPages ? "/SEP_SaigonBistro/index.html" : "/index.html";
+  const redirectOnLogout = withBasePath("/index.html");
 
   initAuthUI({ redirectOnLogout });
 
@@ -371,3 +377,4 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
+

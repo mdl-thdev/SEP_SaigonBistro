@@ -1,9 +1,8 @@
 // SEP_SaigonBistro/frontend/public/pages/help/caseDetail.js
 
-import { supabase } from "/js/supabaseClient.js";
-import { initAuthUI } from "/js/auth.js";
-
-const API_BASE = "http://127.0.0.1:3000";
+import { supabase } from "../../js/supabaseClient.js";
+import { initAuthUI } from "../../js/auth.js";
+import { API_BASE_URL } from "../../js/api.js";
 
 /* ------------------ api helpers ------------------ */
 
@@ -13,7 +12,7 @@ async function apiFetch(path) {
   } = await supabase.auth.getSession();
   if (!session?.access_token) throw new Error("Not authenticated.");
 
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
     headers: { Authorization: `Bearer ${session.access_token}` },
   });
 
@@ -28,7 +27,7 @@ async function apiSend(path, method, body) {
   } = await supabase.auth.getSession();
   if (!session?.access_token) throw new Error("Not authenticated.");
 
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
     method,
     headers: {
       Authorization: `Bearer ${session.access_token}`,

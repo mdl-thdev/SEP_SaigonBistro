@@ -122,7 +122,7 @@ async function handleSubmit(e) {
     orderConfirmation.classList.remove("hidden");
 
     setTimeout(() => {
-      window.location.href = `/pages/orders/orderStatus.html?orderId=${res.order.id}`;
+      window.location.href = withBasePath(`/pages/orders/orderStatus.html?orderId=${encodeURIComponent(res.order.id)}`);
     }, 800);
   } catch (err) {
     alert(err.message);
@@ -138,7 +138,11 @@ async function init() {
   form.addEventListener("submit", handleSubmit);
 }
 
+const isGitHubPages = window.location.hostname.includes("github.io");
+const BASE_PATH = isGitHubPages ? "/SEP_SaigonBistro" : "";
+const withBasePath = (p) => (p && p.startsWith("/") ? `${BASE_PATH}${p}` : p);
+
 document.addEventListener("DOMContentLoaded", () => {
-  initAuthUI({ redirectOnLogout: "/index.html" });
+  initAuthUI({ redirectOnLogout: withBasePath("/index.html") });
   init();
 });
