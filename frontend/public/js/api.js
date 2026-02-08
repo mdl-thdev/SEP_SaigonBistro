@@ -6,7 +6,7 @@ const isLocal =
   location.hostname === "localhost" || location.hostname === "127.0.0.1";
 
 export const API_BASE_URL =
-  window.API_BASE_URL || (isLocal ? "http://localhost:3000" : "https://fed-saigonbistro.onrender.com");
+  window.API_BASE_URL || (isLocal ? "http://localhost:3000" : "https://sep-saigonbistro.onrender.com");
 
 export async function signup(displayName, email, password) {
   const { data, error } = await supabase.auth.signUp({
