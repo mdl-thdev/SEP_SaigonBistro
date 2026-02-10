@@ -1,4 +1,5 @@
 // SEP_SaigonBistro/backend/src/middlewares/cors.js
+// This middleware controls which websites are allowed to call backend from the browser; Browsers enforce CORS
 
 const allowedOrigins = new Set([
   "https://mdl-thdev.github.io",
@@ -21,7 +22,7 @@ module.exports = function corsMiddleware(req, res, next) {
 
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept");
-  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader("Access-Control-Allow-Credentials", "true");  // Allows sending cookies or credentials
 
   if (req.method === "OPTIONS") return res.sendStatus(200);
   next();

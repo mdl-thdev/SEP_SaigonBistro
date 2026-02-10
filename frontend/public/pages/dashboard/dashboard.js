@@ -17,22 +17,11 @@ toggleBtn.addEventListener("click", () => {
   chevron.style.transform = isCollapsed ? "rotate(180deg)" : "rotate(0deg)";
 });
 
-document.addEventListener("DOMContentLoaded", () => {
-  const tabs = document.querySelectorAll(".dash-tab");
-
-  tabs.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      tabs.forEach((b) => b.classList.remove("is-active"));
-      btn.classList.add("is-active");
-    });
-  });
-});
-
-// User: holds the authenticated user object / roleHeader: stores the Authorization header for API requests
+// User: holds the authenticated user object / roleHeader: stores the Authorization header, { Authorization: "Bearer <token>" }
 let user = null;
 let roleHeader = {};
 
-// View Orders: Status steps helpers
+// View Orders: 
 const STATUS_STEPS = [
   { key: "ORDER_CONFIRMED", label: "Order Confirmed" },
   { key: "PREPARE_ORDER", label: "Prepare Order" },
@@ -40,6 +29,7 @@ const STATUS_STEPS = [
   { key: "ORDER_COMPLETED", label: "Order Completed" },
 ];
 
+// Normalize backend status into keys
 function normalizeStatus(s) {
   if (!s) return "ORDER_CONFIRMED";
 
@@ -53,24 +43,28 @@ function normalizeStatus(s) {
   return s;
 }
 
+// Find which step index the status is at
 function getStatusIndex(statusKey) {
   const idx = STATUS_STEPS.findIndex((s) => s.key === statusKey);
   return idx === -1 ? 0 : idx;
 }
 
+// Button CSS class helper
 function buttonClass(kind) {
   const base =
     "status-btn rounded-xl px-3 py-2 text-sm font-semibold transition select-none";
 
-  if (kind === "past") return `${base} bg-slate-200 text-slate-500 cursor-not-allowed`; // past: completed steps (disabled, gray)
-  if (kind === "current") return `${base} bg-green-600 text-white cursor-not-allowed`; // current: active step (green, disabled)
-  return `${base} bg-slate-900 text-white hover:bg-slate-800`; // future: next possible step (clickable)
+  if (kind === "past") return `${base} bg-slate-200 text-slate-500 cursor-not-allowed`; // Past steps: gray + not clickable
+  if (kind === "current") return `${base} bg-green-600 text-white cursor-not-allowed`; // Current step: green + not clickable
+  return `${base} bg-slate-900 text-white hover:bg-slate-800`; // Future steps: black and clickable
 }
 
+// Render the status buttons per order
 function renderStatusButtons(order) {
   const currentKey = normalizeStatus(order.status);
-  const currentIdx = getStatusIndex(currentKey);
+  const currentIdx = getStatusIndex(currentKey);  // Get current step index
 
+  // Creates a button for each step
   return `
     <div class="flex flex-wrap gap-2">
       ${STATUS_STEPS.map((step, idx) => {
@@ -79,6 +73,7 @@ function renderStatusButtons(order) {
 
     const disabled = kind !== "future" ? "disabled" : "";
 
+    // Generates <button> with: data-order-id and data-status so clicks know what to update
     return `
           <button
             class="${buttonClass(kind)}"
@@ -96,11 +91,14 @@ function renderStatusButtons(order) {
   `;
 }
 
+
+// Theme helper for “reports” tab
 const contentArea = document.getElementById("contentArea");
 const headerEl = document.querySelector("header");
 const footerEl = document.querySelector("footer");
 const sidebarEl = document.getElementById("sidebar");
 
+// For now: Reports tab always light
 function setReportsTheme(_on) {
 
   // BODY
@@ -140,7 +138,7 @@ function setReportsTheme(_on) {
   welcome?.classList.remove("text-slate-200");
 }
 
-// View Orders: Renders the list of orders into the page body
+// View Orders: Rendering Orders list
 function renderOrders(orders = []) {
   if (!orders.length) {
     pageBody.innerHTML = `
@@ -150,12 +148,12 @@ function renderOrders(orders = []) {
     `;
     return;
   }
-
+  // For each order: normalize status; safely get total price (?. avoids crash)
   pageBody.innerHTML = orders
     .map((o) => {
       const status = normalizeStatus(o.status);
       const total = o.totals?.total ?? 0;
-
+      // Render order info + status buttons
       return `
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-4 border rounded-xl">
           <div class="space-y-1">
@@ -180,26 +178,25 @@ function renderOrders(orders = []) {
 
 
 /* ================================
-// APIs: View Orders:
+// Orders API calls
 =================================== */
 
-// View Orders:
-// GET /api/orders
+// Fetch orders
 async function fetchOrders() {
-  const res = await fetch(`${API_BASE_URL}/api/orders`, { headers: { ...roleHeader } })
+  const res = await fetch(`${API_BASE_URL}/api/orders`, { headers: { ...roleHeader } })  // Sends GET request with auth header
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.message || `Failed to load orders (${res.status})`);
   }
-
+  // Supports multiple backend formats: [ ... ], { orders: [ ... ] }
   const data = await res.json();
   if (Array.isArray(data)) return data;
   if (Array.isArray(data.orders)) return data.orders;
-  return []; // Handles multiple backend response formats
+  return []; 
 }
 
-// PATCH /api/orders/:id
+// Update order status
 async function updateOrderStatus(orderId, status) {
   const res = await fetch(`${API_BASE_URL}/api/orders/${encodeURIComponent(orderId)}`, {
     method: "PATCH",
@@ -214,42 +211,49 @@ async function updateOrderStatus(orderId, status) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.message || `Failed to update (${res.status})`);
   }
-
+  // Supports response being either { order: {...} } or direct object
   const data = await res.json().catch(() => ({}));
   return data.order || data;
 }
 
-// Tab loading (simple placeholders)
-// Fetches orders, render them
+// Load orders UI: Fetch then render
 async function loadOrdersUI() {
   const orders = await fetchOrders();
   renderOrders(orders);
 }
 
 /* ================================
-// APIs: Tickets:
+// Tickets APIs 
 =================================== */
+
+// Tickets: constants + helpers
+// Show 10 tickets per page
 const TICKETS_PAGE_SIZE = 10;
 
+// normalize for comparisons
 function safeLower(v) {
   return (v ?? "").toString().trim().toLowerCase();
 }
 
+// format date nicely
 function formatDT(v) {
   if (!v) return "-";
   const d = new Date(v);
   return isNaN(d.getTime()) ? "-" : d.toLocaleString();
 }
 
+// convert date input YYYY-MM-DD to milliseconds for filtering
 function parseDateOnlyToMs(dateStr, endOfDay = false) {
   if (!dateStr) return null;
-  // dateStr is YYYY-MM-DD from <input type="date">
+  
   const t = endOfDay ? `${dateStr}T23:59:59.999` : `${dateStr}T00:00:00.000`;
   const ms = new Date(t).getTime();
   return isNaN(ms) ? null : ms;
 }
 
-// GET /api/tickets (staff/admin)
+
+// Tickets API + filter system + pagination + rendering
+// Fetch tickets
 async function fetchTickets() {
   const res = await fetch(`${API_BASE_URL}/api/tickets`, { headers: { ...roleHeader } });
 
@@ -264,7 +268,7 @@ async function fetchTickets() {
   return [];
 }
 
-// helpers
+// helpers escapeHtml: Prevents HTML injection when inserting text into .innerHTML; Replaces <, >, &, quotes, etc
 function escapeHtml(s) {
   return (s ?? "").toString().replace(/[&<>"']/g, (m) => ({
     "&": "&amp;",
@@ -275,28 +279,7 @@ function escapeHtml(s) {
   }[m]));
 }
 
-function buildPageItems(page, totalPages) {
-  // returns array of numbers and "..."
-  const items = [];
-  const maxButtons = 7; // center group size
-  if (totalPages <= 9) {
-    for (let i = 1; i <= totalPages; i++) items.push(i);
-    return items;
-  }
-
-  items.push(1);
-
-  const left = Math.max(2, page - 2);
-  const right = Math.min(totalPages - 1, page + 2);
-
-  if (left > 2) items.push("...");
-  for (let i = left; i <= right; i++) items.push(i);
-  if (right < totalPages - 1) items.push("...");
-
-  items.push(totalPages);
-  return items;
-}
-
+// Fetch tickets
 async function fetchOrdersForLookup() {
   const res = await fetch(`${API_BASE_URL}/api/orders`, { headers: { ...roleHeader } });
   if (!res.ok) return [];
@@ -306,14 +289,14 @@ async function fetchOrdersForLookup() {
   return [];
 }
 
+// loadTicketsUI
 async function loadTicketsUI() {
+  // Initial Data Fetching
   const allTicketsRaw = await fetchTickets();
-
   const orders = await fetchOrdersForLookup();
-
   const orderLookup = new Map();
 
-  // helper: put multiple keys -> same public id
+  // Order Lookup Builder, Helper to map multiple order ID formats to one public ID
   function putKey(k, pub) {
     const key = (k ?? "").toString().trim();
     const p = (pub ?? "").toString().trim();
@@ -326,7 +309,7 @@ async function loadTicketsUI() {
     const pub =
       (o.public_orderid ?? o.publicOrderId ?? o.public_order_id ?? "").toString().trim();
 
-    // try every possible “id” field your orders API might return
+    // try every possible “id” field orders API might return
     const keys = [
       o.id,
       o.order_id,
@@ -345,13 +328,12 @@ async function loadTicketsUI() {
   // Fetch profiles so we can map owner_id <-> email/name
   let profiles = [];
   try {
-    profiles = await fetchStaffs(); // uses /api/profiles
+    profiles = await fetchStaffs(); 
   } catch (e) {
     profiles = [];
   }
 
   const byId = new Map(profiles.map(p => [String(p.id), p]));
-  const byEmail = new Map(profiles.map(p => [safeLower(p.email), p]));
 
   // Enrich tickets so filters can work with email/name
   const allTickets = allTicketsRaw.map(t => {
@@ -373,22 +355,6 @@ async function loadTicketsUI() {
     };
   });
 
-  const STAFF_SET = Array.from(
-    new Map(
-      allTickets
-        .filter(t => t.owner_id && (t.owner_name || t.owner_email))
-        .map(t => [
-          t.owner_id,
-          {
-            id: t.owner_id,
-            label: t.owner_name
-              ? `${t.owner_name} (${t.owner_email || t.owner_id})`
-              : (t.owner_email || t.owner_id)
-          }
-        ])
-    ).values()
-  );
-
   const STATUS_OPTIONS = ["All", "New", "Pending Review", "Waiting Customer Response", "Resolved", "Reopened"];
 
   const CATEGORY_SET = Array.from(
@@ -400,333 +366,263 @@ async function loadTicketsUI() {
     startDate: "",
     endDate: "",
     customerEmail: "",
-    customerPhone: "",
-    keyword: "",
     ticketNumber: "",
-    orderId: "",
     ownerEmailOrId: "",
     category: "All",
-    // staff: "All",
     page: 1,
   };
 
+  // Filter Logic
   function applyFilters(list) {
     const sStatus = safeLower(state.status);
     const sCat = safeLower(state.category);
-    // const sStaff = safeLower(state.staff);
-
     const startMs = parseDateOnlyToMs(state.startDate, false);
     const endMs = parseDateOnlyToMs(state.endDate, true);
-
     const fEmail = safeLower(state.customerEmail);
-    const fPhone = safeLower(state.customerPhone);
-    const fKeyword = safeLower(state.keyword);
     const fTicketNo = safeLower(state.ticketNumber);
-    const fOrderId = safeLower(state.orderId);
     const fOwner = safeLower(state.ownerEmailOrId);
 
     return list.filter((t) => {
-      const staffBlob = `${safeLower(t.owner_id)} ${safeLower(t.owner_email)} ${safeLower(t.owner_name)}`;
-      // status
       if (sStatus !== "all" && safeLower(t.status) !== sStatus) return false;
 
-      // staff/owner filter
-      // if (sStaff !== "all" && !staffBlob.includes(sStaff)) return false;
-
-      // time range (created_at)
       const createdMs = t.created_at ? new Date(t.created_at).getTime() : null;
       if (startMs != null && createdMs != null && createdMs < startMs) return false;
       if (endMs != null && createdMs != null && createdMs > endMs) return false;
 
-      // customer email/phone exact-ish contains
       if (fEmail && !safeLower(t.customer_email).includes(fEmail)) return false;
-      if (fPhone && !safeLower(t.customer_phone).includes(fPhone)) return false;
-
-      // ticket number / order id
       if (fTicketNo && !safeLower(t.ticket_number).includes(fTicketNo)) return false;
 
-      if (fOrderId) {
-        const orderBlob = [
-          t.public_orderid,       // "SB-...." (computed)
-          t.order_id,             // possible uuid
-          t.orderId,              // possible uuid (camelCase)
-          t.order_uuid,           // possible uuid
-          t.orderUuid,            // possible uuid
-        ]
-          .filter(Boolean)
-          .map(safeLower)
-          .join(" ");
-
-        if (!orderBlob.includes(fOrderId)) return false;
-      }
-
-      // owner (you currently only have owner_id in list)
-      // This input supports owner_id (and future owner email if you add it later).
       const ownerBlob = `${safeLower(t.owner_id)} ${safeLower(t.owner_email)} ${safeLower(t.owner_name)}`;
       if (fOwner && !ownerBlob.includes(fOwner)) return false;
 
-      // category
       if (sCat !== "all" && safeLower(t.category) !== sCat) return false;
-
-      // keyword (search across subject/description/customer fields)
-      if (fKeyword) {
-        const blob = [
-          t.subject,
-          t.description,
-          t.customer_name,
-          t.customer_email,
-          t.customer_phone,
-          t.ticket_number,
-          t.order_id,
-          t.category,
-          t.status,
-        ]
-          .map((x) => safeLower(x))
-          .join(" ");
-        if (!blob.includes(fKeyword)) return false;
-      }
 
       return true;
     });
   }
-
+  // Defines a function that takes a list of items and splits it into pages
   function paginate(list) {
     const total = list.length;
     const totalPages = Math.max(1, Math.ceil(total / TICKETS_PAGE_SIZE));
     const page = Math.min(Math.max(1, state.page), totalPages);
-    state.page = page;
+    state.page = page; // Updates the state with the normalized page number
 
     const start = (page - 1) * TICKETS_PAGE_SIZE;
-    const items = list.slice(start, start + TICKETS_PAGE_SIZE);
+    const items = list.slice(start, start + TICKETS_PAGE_SIZE); // Extracts the items for the current page
     return { items, total, totalPages, page };
   }
 
+  // function that updates the UI whenever filters or page changes
   function render() {
-    const filtered = applyFilters(allTickets);
+    const filtered = applyFilters(allTickets);  // Applies all active filters to get the filtered ticket list
     const { items, total, totalPages, page } = paginate(filtered);
 
-    const STAFF_SET_FILTERED = Array.from(
-      new Map(
-        filtered
-          .filter(t => t.owner_id && (t.owner_name || t.owner_email))
-          .map(t => [
-            t.owner_id,
-            {
-              id: t.owner_id,
-              label: t.owner_name
-                ? `${t.owner_name} (${t.owner_email || t.owner_id})`
-                : (t.owner_email || t.owner_id)
-            }
-          ])
-      ).values()
-    );
-
+    // Page Actions (Ticket Count)
     pageActions.innerHTML = `
       <div class="text-sm text-slate-600">
         <span class="font-semibold">${total}</span> ticket(s)
       </div>
     `;
 
+    // Checks if ANY filter is currently active
     const hasAnyFilter =
       state.status !== "All" ||
       state.category !== "All" ||
-      // state.staff !== "All" ||
-      !!state.startDate ||
+      !!state.startDate ||    // !!state.startDate - converts string to boolean (empty string = false, any text = true)
       !!state.endDate ||
       !!state.customerEmail ||
-      !!state.customerPhone ||
-      !!state.keyword ||
       !!state.ticketNumber ||
-      !!state.orderId ||
       !!state.ownerEmailOrId;
 
+    // building the entire page content 
     pageBody.innerHTML = `
-  <!-- Top toolbar  -->
-  <div class="flex items-center justify-between md:justify-end gap-3">
-        <button id="btnOpenFilters"
-          class="rounded-xl px-4 py-2 text-sm font-semibold border hover:bg-black/5">
+    <!-- Top toolbar  -->
+    <div class="flex items-center justify-between md:justify-end gap-3">
+      <button id="btnOpenFilters" class="rounded-xl px-4 py-2 text-sm font-semibold border hover:bg-black/5">
           + Add filter
-        </button>
-      </div>
+      </button>
+    </div>
   
-
     <!-- Active filter chips row -->
-<div class="mt-3 flex items-start justify-between gap-3">
-  <!-- Left: chips (only render when filters exist) -->
-  <div class="flex flex-wrap gap-2 text-xs">
+    <div class="mt-3 flex items-start justify-between gap-3">
+
+    <!-- Left: chips (only render when filters exist) -->
+    <div class="flex flex-wrap gap-2 text-xs">
+
+    <!-- Only show chips if filters are active; Starts an array of chip strings -->
     ${hasAnyFilter ? [
         state.status !== "All" ? `Status: ${escapeHtml(state.status)}` : "",
         state.category !== "All" ? `Category: ${escapeHtml(state.category)}` : "",
         state.startDate ? `From: ${escapeHtml(state.startDate)}` : "",
         state.endDate ? `To: ${escapeHtml(state.endDate)}` : "",
         state.customerEmail ? `Email: ${escapeHtml(state.customerEmail)}` : "",
-        state.customerPhone ? `Phone: ${escapeHtml(state.customerPhone)}` : "",
-        state.keyword ? `Keyword: ${escapeHtml(state.keyword)}` : "",
         state.ticketNumber ? `Ticket#: ${escapeHtml(state.ticketNumber)}` : "",
-        state.orderId ? `Order: ${escapeHtml(state.orderId)}` : "",
         state.ownerEmailOrId ? `Owner: ${escapeHtml(state.ownerEmailOrId)}` : "",
       ].filter(Boolean).map((txt) => `
+      
       <span class="rounded-full border px-3 py-1 bg-slate-50 text-slate-700">${txt}</span>
     `).join("") : ``}
-  </div>
-
-  <!-- Right: empty state under Add filter (only when NO filters) -->
-  ${!hasAnyFilter ? `
-    <div class="text-xs text-slate-400 text-right whitespace-nowrap">
-      No filters applied
     </div>
-  ` : ``}
-</div>
+    
+    <!-- Right: empty state under Add filter (only when NO filters) -->
+    ${!hasAnyFilter ? `
+    <div class="text-xs text-slate-400 text-right whitespace-nowrap">
+      No filters applied</div>
+      ` : ``}
+    </div>
 
     <!-- Filters panel (hidden until "+ Add filter") -->
-  <div id="filtersPanel" class="hidden border rounded-2xl p-4 bg-white">
-    <div class="flex items-center justify-between">
-      <div class="text-sm font-bold">Filters</div>
-      <button id="btnCloseFilters" class="text-sm font-semibold text-slate-600 hover:text-slate-900">
-        Close
-      </button>
-    </div>
+    <div id="filtersPanel" class="hidden border rounded-2xl p-4 bg-white">
+      <div class="flex items-center justify-between">
 
-    <div class="mt-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-    <label class="space-y-1">
-  <span class="text-xs font-semibold text-slate-700">Category</span>
-  <select id="fCategory" class="w-full rounded-xl border px-3 py-2 text-sm">
-    <option ${state.category === "All" ? "selected" : ""}>All</option>
-    ${CATEGORY_SET.map((c) => `
-      <option ${c === state.category ? "selected" : ""}>${escapeHtml(c)}</option>
-    `).join("")}
-  </select>
-</label>
-      <label class="space-y-1">
-        <span class="text-xs font-semibold text-slate-700">Ticket Status</span>
-        <select id="fStatus" class="w-full rounded-xl border px-3 py-2 text-sm">
-          ${STATUS_OPTIONS.map((x) => `<option ${x === state.status ? "selected" : ""}>${escapeHtml(x)}</option>`).join("")}
-        </select>
-      </label>
+        <div class="text-sm font-bold">Filters</div>
+          <button id="btnCloseFilters" class="text-sm font-semibold text-slate-600 hover:text-slate-900">
+          Close
+          </button>
+        </div>
 
-      <label class="space-y-1">
-        <span class="text-xs font-semibold text-slate-700">Ticket Number</span>
-        <input id="fTicketNumber" value="${escapeHtml(state.ticketNumber)}" placeholder="e.g. T-000011"
-          class="w-full rounded-xl border px-3 py-2 text-sm" />
-      </label>
+        <div class="mt-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
 
-      <label class="space-y-1">
-        <span class="text-xs font-semibold text-slate-700">Start Date</span>
-        <input id="fStart" type="date" value="${escapeHtml(state.startDate)}"
-          class="w-full rounded-xl border px-3 py-2 text-sm" />
-      </label>
+          <label class="space-y-1">
+            <span class="text-xs font-semibold text-slate-700">Category</span>
+            <select id="fCategory" class="w-full rounded-xl border px-3 py-2 text-sm">
+            <option ${state.category === "All" ? "selected" : ""}>All</option>
+            ${CATEGORY_SET.map((c) => `
+            <option ${c === state.category ? "selected" : ""}>${escapeHtml(c)}</option>
+            `).join("")}
+            </select>
+          </label>
+      
+          <label class="space-y-1">
+            <span class="text-xs font-semibold text-slate-700">Ticket Status</span>
+            <select id="fStatus" class="w-full rounded-xl border px-3 py-2 text-sm">
+            ${STATUS_OPTIONS.map((x) => `<option ${x === state.status ? "selected" : ""}>${escapeHtml(x)}</option>`).join("")}
+            </select>
+          </label>
 
-      <label class="space-y-1">
-        <span class="text-xs font-semibold text-slate-700">End Date</span>
-        <input id="fEnd" type="date" value="${escapeHtml(state.endDate)}"
-          class="w-full rounded-xl border px-3 py-2 text-sm" />
-      </label>
+          <label class="space-y-1">
+            <span class="text-xs font-semibold text-slate-700">Ticket Number</span>
+            <input id="fTicketNumber" value="${escapeHtml(state.ticketNumber)}" placeholder="e.g. T-000011"
+            class="w-full rounded-xl border px-3 py-2 text-sm" />
+          </label>
 
-      <label class="space-y-1">
-        <span class="text-xs font-semibold text-slate-700">Customer Email</span>
-        <input id="fCustomerEmail" value="${escapeHtml(state.customerEmail)}" placeholder="e.g. user@email.com"
-          class="w-full rounded-xl border px-3 py-2 text-sm" />
-      </label>
+          <label class="space-y-1">
+            <span class="text-xs font-semibold text-slate-700">Start Date</span>
+            <input id="fStart" type="date" value="${escapeHtml(state.startDate)}"
+            class="w-full rounded-xl border px-3 py-2 text-sm" />
+          </label>
 
-      <label class="space-y-1">
-        <span class="text-xs font-semibold text-slate-700">Ticket Owner (staff email / id)</span>
-        <input id="fOwner" value="${escapeHtml(state.ownerEmailOrId)}" placeholder="owner id (or email if added later)"
-          class="w-full rounded-xl border px-3 py-2 text-sm" />
-      </label>
-    </div>
+          <label class="space-y-1">
+            <span class="text-xs font-semibold text-slate-700">End Date</span>
+            <input id="fEnd" type="date" value="${escapeHtml(state.endDate)}"
+            class="w-full rounded-xl border px-3 py-2 text-sm" />
+          </label>
 
-    <div class="mt-3 flex flex-wrap items-center gap-2">
-      <button id="btnApply"
-        class="rounded-xl px-4 py-2 text-sm font-semibold bg-slate-900 text-white hover:bg-slate-800">
-        Apply
-      </button>
-      <button id="btnReset"
-        class="rounded-xl px-4 py-2 text-sm font-semibold border hover:bg-black/5">
-        Reset
-      </button>
-    </div>
-  </div>
+          <label class="space-y-1">
+            <span class="text-xs font-semibold text-slate-700">Customer Email</span>
+            <input id="fCustomerEmail" value="${escapeHtml(state.customerEmail)}" placeholder="e.g. user@email.com"
+            class="w-full rounded-xl border px-3 py-2 text-sm" />
+          </label>
 
-      <!-- Tickets list -->
-      <div class="space-y-3">
-        ${items.length ? items.map((t) => {
-        const status = (t.status ?? "-").toString();
-        const badgeClass =
-          safeLower(status) === "resolved" ? "bg-green-100 text-green-800"
-            : safeLower(status) === "in progress" ? "bg-yellow-100 text-yellow-800"
-              : safeLower(status) === "new" ? "bg-blue-100 text-blue-800"
-                : "bg-slate-100 text-slate-800";
+          <label class="space-y-1">
+            <span class="text-xs font-semibold text-slate-700">Ticket Owner (staff email / id)</span>
+            <input id="fOwner" value="${escapeHtml(state.ownerEmailOrId)}" placeholder="owner id (or email if added later)"
+            class="w-full rounded-xl border px-3 py-2 text-sm" />
+          </label>
+        
+        </div>
 
-        return `
-            <div class="border rounded-2xl p-4 bg-white flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div class="min-w-0 space-y-1">
-                <div class="flex flex-wrap items-center gap-2">
-                  <div class="font-bold">Ticket #${t.ticket_number ?? t.id}</div>
-                  <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold ${badgeClass}">
-                    ${status}
-                  </span>
-                  ${(t.public_orderid || t.order_id || t.orderId) ? 
-  `<span class="text-xs text-slate-500">Order: ${escapeHtml(t.public_orderid || t.order_id || t.orderId)}</span>` 
-  : ""}
-                </div>
+        <div class="mt-3 flex flex-wrap items-center gap-2">
+          <button id="btnApply" class="rounded-xl px-4 py-2 text-sm font-semibold bg-slate-900 text-white hover:bg-slate-800">
+            Apply </button>
+       
+          <button id="btnReset" class="rounded-xl px-4 py-2 text-sm font-semibold border hover:bg-black/5">
+            Reset</button>
+        </div>
+  
+      </div>
 
-                <div class="text-sm text-slate-700 font-semibold truncate">
-                  ${t.subject ?? "(no subject)"}
-                </div>
+    <!-- Tickets list -->
+    <div class="space-y-3">
+      ${items.length ? items.map((t) => {
+      const status = (t.status ?? "-").toString();
+      const badgeClass =
+        safeLower(status) === "resolved" ? "bg-green-100 text-green-800"
+          : safeLower(status) === "in progress" ? "bg-yellow-100 text-yellow-800"
+            : safeLower(status) === "new" ? "bg-blue-100 text-blue-800"
+              : "bg-slate-100 text-slate-800";
 
-                <div class="text-sm text-slate-600 flex flex-wrap gap-x-3 gap-y-1">
-                  <span><span class="font-semibold">Customer:</span> ${t.customer_name ?? "-"} (${t.customer_email ?? "-"})</span>
-                  ${t.customer_phone ? `<span><span class="font-semibold">Phone:</span> ${t.customer_phone}</span>` : ""}
-                  <span><span class="font-semibold">Category:</span> ${t.category ?? "-"}</span>
-                  <span><span class="font-semibold">Owner:</span>
-                  ${t.owner_name
-            ? `${escapeHtml(t.owner_name)} (${escapeHtml(t.owner_email || t.owner_id)})`
-            : escapeHtml(t.owner_email || t.owner_id || "Unassigned")}
-                  </span>
-
-                </div>
-
-                <div class="text-xs text-slate-500">
-                  Created: ${formatDT(t.created_at)} · Updated: ${formatDT(t.updated_at)}
-                </div>
-              </div>
-
-              <div class="shrink-0 flex items-center gap-2">
-                <a class="rounded-xl px-3 py-2 text-sm font-semibold border hover:bg-black/5"
-                   href="/pages/dashboard/ticket-case.html?id=${encodeURIComponent(t.id)}">
-                  View case
-                </a>
-              </div>
+      return `
+        <div class="border rounded-2xl p-4 bg-white flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              
+          <div class="min-w-0 space-y-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <div class="font-bold">Ticket ${escapeHtml(String(t.ticket_number ?? t.id ?? "-"))}</div>
+              <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold ${badgeClass}">
+                ${escapeHtml(String(status))}</span>
+                
+              ${(t.public_orderid || t.order_id || t.orderId) ?
+              `<span class="text-xs text-slate-500">Order: ${escapeHtml(t.public_orderid || t.order_id || t.orderId)}</span>`
+              : ""}
             </div>
-          `;
-      }).join("") : `
-          <div class="p-4 border rounded-2xl bg-slate-50 text-slate-600">
-            No tickets found with the current filters.
+
+            <div class="text-sm text-slate-700 font-semibold truncate">${escapeHtml(String(t.subject ?? "(no subject)"))}</div>
+
+            <div class="text-sm text-slate-600 flex flex-wrap gap-x-3 gap-y-1">
+              <span>
+                <span class="font-semibold">Customer:</span>
+                ${escapeHtml(String(t.customer_name ?? "-"))}
+                (${escapeHtml(String(t.customer_email ?? "-"))})
+                </span>
+                ${t.customer_phone ? `<span><span class="font-semibold">Phone:</span> ${escapeHtml(String(t.customer_phone))}</span>` : ""}
+                <span>
+                  <span class="font-semibold">Category:</span> ${escapeHtml(String(t.category ?? "-"))}
+
+                </span>
+                <span><span class="font-semibold">Owner:</span>
+                ${t.owner_name
+                ? `${escapeHtml(t.owner_name)} (${escapeHtml(t.owner_email || t.owner_id)})`
+                  : escapeHtml(t.owner_email || t.owner_id || "Unassigned")}
+              
+              </span>
+            </div>
+
+            <div class="text-xs text-slate-500">Created: ${formatDT(t.created_at)} · Updated: ${formatDT(t.updated_at)}</div>
           </div>
+
+          <div class="shrink-0 flex items-center gap-2">
+            <a class="rounded-xl px-3 py-2 text-sm font-semibold border hover:bg-black/5"
+              href="/pages/dashboard/ticket-case.html?id=${encodeURIComponent(t.id)}">View case</a>
+          </div>
+        </div>`;
+        
+        }).join("") : `
+          <div class="p-4 border rounded-2xl bg-slate-50 text-slate-600">No tickets found with the current filters.</div>
         `}
-      </div>
-
-      <!-- Pagination -->
-      <div class="flex items-center justify-between border rounded-2xl p-4 bg-white">
-        <div class="text-sm text-slate-600">
-          Page <span class="font-semibold">${page}</span> of <span class="font-semibold">${totalPages}</span>
         </div>
 
-        <div class="flex items-center gap-2">
-          <button id="btnPrev" class="rounded-xl px-3 py-2 text-sm font-semibold border hover:bg-black/5" ${page <= 1 ? "disabled" : ""}>
-            Prev
-          </button>
-          <button id="btnNext" class="rounded-xl px-3 py-2 text-sm font-semibold border hover:bg-black/5" ${page >= totalPages ? "disabled" : ""}>
-            Next
-          </button>
-        </div>
+    <!-- Pagination -->
+    <div class="flex items-center justify-between border rounded-2xl p-4 bg-white">
+      <div class="text-sm text-slate-600">Page 
+        <span class="font-semibold">${page}</span> of <span class="font-semibold">${totalPages}</span>
       </div>
+
+      <div class="flex items-center gap-2">
+        <button id="btnPrev" class="rounded-xl px-3 py-2 text-sm font-semibold border hover:bg-black/5" ${page <= 1 ? "disabled" : ""}>
+          Prev</button>
+          
+        <button id="btnNext" class="rounded-xl px-3 py-2 text-sm font-semibold border hover:bg-black/5" ${page >= totalPages ? "disabled" : ""}>
+          Next</button>
+        
+      </div>
+    </div>
     `;
 
-    // wire events
-    const $ = (id) => document.getElementById(id);
+    // Events handlers
+    const $ = (id) => document.getElementById(id);   // Shorthand function to get element by ID, $("btnApply") is same as document.getElementById("btnApply")
 
     // open/close filter panel
+    // When "+ Add filter" clicked, show/hide the filters panel
     $("btnOpenFilters")?.addEventListener("click", () => {
       $("filtersPanel")?.classList.toggle("hidden");
     });
@@ -745,28 +641,15 @@ async function loadTicketsUI() {
       render();
     });
 
-    // pagination: number buttons
-    document.querySelectorAll(".page-btn").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const p = Number(btn.dataset.page);
-        if (!Number.isFinite(p)) return;
-        state.page = p;
-        render();
-      });
-    });
-
-
+    // When Apply clicked, read all input values and update state
     $("btnApply")?.addEventListener("click", () => {
-      state.status = $("fStatus").value;
-      state.startDate = $("fStart").value;
-      state.endDate = $("fEnd").value;
-      state.customerEmail = $("fCustomerEmail").value;
-      // state.customerPhone = $("fCustomerPhone").value;
-      // state.keyword = $("fKeyword").value;
-      state.ticketNumber = $("fTicketNumber").value;
-      state.orderId = $("fOrderId").value;
-      state.ownerEmailOrId = $("fOwner").value;
-      state.category = $("fCategory").value;
+      state.status = $("fStatus")?.value ?? "All";
+      state.startDate = $("fStart")?.value ?? "";
+      state.endDate = $("fEnd")?.value ?? "";
+      state.customerEmail = $("fCustomerEmail")?.value ?? "";
+      state.ticketNumber = $("fTicketNumber")?.value ?? "";      
+      state.ownerEmailOrId = $("fOwner")?.value ?? "";
+      state.category = $("fCategory")?.value ?? "All";
       state.page = 1;
       render();
     });
@@ -776,10 +659,7 @@ async function loadTicketsUI() {
       state.startDate = "";
       state.endDate = "";
       state.customerEmail = "";
-      // state.customerPhone = "";
-      // state.keyword = "";
       state.ticketNumber = "";
-      state.orderId = "";
       state.ownerEmailOrId = "";
       state.category = "All";
       state.page = 1;
@@ -791,23 +671,18 @@ async function loadTicketsUI() {
 
 
 /* ================================
-// APIs: View Staffs (Admin only)
+// View Staffs API (Admin only)
 =================================== */
 
-// GET /api/staff (admin only, admin can view all staffs and all admins)
-// Expected response formats supported:
-//   - Array of staff objects
-//   - { staffs: [...] } or { staff: [...] }
 async function fetchStaffs() {
-  const res = await fetch(`${API_BASE_URL}/api/profiles`, {
-    headers: { ...roleHeader },
-  });
+  const res = await fetch(`${API_BASE_URL}/api/profiles`, {headers: { ...roleHeader },});  // Gets staff/admin profiles
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.message || `Failed to load staffs (${res.status})`);
   }
 
+  // Handles formats: array { staffs: [...] }, { staff: [...] }
   const data = await res.json().catch(() => ({}));
   if (Array.isArray(data)) return data;
   if (Array.isArray(data.staffs)) return data.staffs;
@@ -826,6 +701,7 @@ function staffBadge(role) {
   </span>`;
 }
 
+// loadStaffUI
 async function loadStaffUI() {
   pageTitle.textContent = "All Staffs";
   pageActions.innerHTML = "";
@@ -838,7 +714,6 @@ async function loadStaffUI() {
   const staffs = await fetchStaffs();
   const state = { q: "" };
 
-  // 1) Render static shell ONCE
   pageBody.innerHTML = `
   <div class="flex items-center">
     <div class="w-full md:w-80 md:ml-auto">
@@ -919,18 +794,17 @@ async function loadStaffUI() {
         `;
   }
 
-  // 2) Wire input ONCE (no DOM replacement)
   inputEl.addEventListener("input", (e) => {
     state.q = e.target.value || "";
     renderList();
   });
 
-  // initial list render
   renderList();
 }
 
+
 /* ================================
-// APIs: Reports: (Admin only)
+// Reports APIs
 =================================== */
 async function loadReportsUI() {
   pageTitle.textContent = "Case Reports";
@@ -968,27 +842,6 @@ async function loadReportsUI() {
   };
 
   // ---------- helpers ----------
-  function safeLower(v) {
-    return (v ?? "").toString().trim().toLowerCase();
-  }
-
-  function escapeHtml(s) {
-    return (s ?? "").toString().replace(/[&<>"']/g, (m) => ({
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#39;",
-    }[m]));
-  }
-
-  function parseDateOnlyToMs(dateStr, endOfDay = false) {
-    if (!dateStr) return null;
-    const t = endOfDay ? `${dateStr}T23:59:59.999` : `${dateStr}T00:00:00.000`;
-    const ms = new Date(t).getTime();
-    return isNaN(ms) ? null : ms;
-  }
-
   function applyFilters(list) {
     const startMs = parseDateOnlyToMs(state.startDate, false);
     const endMs = parseDateOnlyToMs(state.endDate, true);
@@ -1027,7 +880,7 @@ async function loadReportsUI() {
     return Array.from(m.entries()).sort((a, b) => b[1] - a[1]); // [key, count]
   }
 
-  // Status text colors (Reports only)
+  // Status text colors 
   function statusTextClass(status) {
     const s = safeLower(status);
     if (s === "resolved") return "text-green-900";
@@ -1037,7 +890,7 @@ async function loadReportsUI() {
     return "text-dark-blue-500";
   }
 
-  // Category palette (consistent per category)
+  // Category palette 
   const CATEGORY_PALETTE = [
     "#ef4444", // red
     "#f59e0b", // amber
@@ -1100,10 +953,10 @@ async function loadReportsUI() {
     const byCategory = countBy(filtered, (t) => t.category ?? "Unknown");
     const total = filtered.length;
 
-    // Top right summary text (now in light color)
+    // Top right summary text 
     pageActions.innerHTML = `
       <div class="text-sm text-slate-300">
-        Showing <span class="font-semibold text-white">${total}</span> case(s)
+        Showing <span class="font-semibold text-black">${total}</span> case(s)
       </div>
     `;
 
@@ -1116,21 +969,21 @@ async function loadReportsUI() {
           <!-- LEFT: filters -->
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full lg:w-auto">
             <label class="space-y-1">
-              <div class="text-xs font-semibold text-slate-300">Start date</div>
+              <div class="text-xs font-semibold text-black">Start date</div>
               <input id="rStart" type="date"
                 value="${escapeHtml(state.startDate)}"
                 class="w-full rounded-xl border border-gray-300 bg-white text-slate-900 px-3 py-2 text-sm" />
             </label>
 
             <label class="space-y-1">
-              <div class="text-xs font-semibold text-slate-300">End date</div>
+              <div class="text-xs font-semibold text-black">End date</div>
               <input id="rEnd" type="date"
                 value="${escapeHtml(state.endDate)}"
                 class="w-full rounded-xl border border-gray-300 bg-white text-slate-900 px-3 py-2 text-sm" />
             </label>
 
             <label class="space-y-1">
-              <div class="text-xs font-semibold text-slate-700">Status</div>
+              <div class="text-xs font-semibold text-black">Status</div>
               <select id="rStatus"
                 class="w-full rounded-xl border border-gray-300 bg-white text-slate-900 px-3 py-2 text-sm">
                 ${STATUS_OPTIONS.map(x =>
@@ -1140,7 +993,7 @@ async function loadReportsUI() {
             </label>
 
             <label class="space-y-1">
-              <div class="text-xs font-semibold text-slate-300">Category</div>
+              <div class="text-xs font-semibold text-black">Category</div>
               <select id="rCat"
                 class="w-full rounded-xl border border-gray-300 bg-white text-slate-900 px-3 py-2 text-sm">
                 ${CATEGORY_OPTIONS.map(x =>
@@ -1175,15 +1028,15 @@ async function loadReportsUI() {
         <div class="border border-gray-200 rounded-2xl p-4 bg-white text-slate-900">
           <div class="text-xs text-slate-400">Top category</div>
           <div class="text-lg font-bold mt-1">${escapeHtml(topCategories[0]?.[0] ?? "-")}</div>
-          <div class="text-sm text-slate-300">${topCategories[0]?.[1] ?? 0} case(s)</div>
+          <div class="text-sm text-black">${topCategories[0]?.[1] ?? 0} case(s)</div>
         </div>
 
         <div class="border border-gray-200 rounded-2xl p-4 bg-white text-slate-900">
-          <div class="text-xs text-slate-400">Top status</div>
+          <div class="text-xs text-black">Top status</div>
           <div class="text-lg font-bold mt-1 ${statusTextClass(byStatus[0]?.[0] ?? "")}">
             ${escapeHtml(byStatus[0]?.[0] ?? "-")}
           </div>
-          <div class="text-sm text-slate-300">${byStatus[0]?.[1] ?? 0} case(s)</div>
+          <div class="text-sm text-black">${byStatus[0]?.[1] ?? 0} case(s)</div>
         </div>
       </div>
 
@@ -1192,7 +1045,7 @@ async function loadReportsUI() {
         <div class="border border-gray-200 rounded-2xl p-4 bg-white text-slate-900">
           <div class="flex items-center justify-between">
             <div class="text-sm font-bold">Cases by category</div>
-            <div class="text-xs text-slate-400">
+            <div class="text-xs text-black">
               ${escapeHtml(state.startDate || "All time")} → ${escapeHtml(state.endDate || "Now")}
             </div>
           </div>
@@ -1202,7 +1055,7 @@ async function loadReportsUI() {
           </div>
 
           <!-- Legend -->
-          <div class="mt-3 flex flex-wrap gap-2 text-xs text-slate-300">
+          <div class="mt-3 flex flex-wrap gap-2 text-xs text-black">
             ${topCategories.map(([label]) => `
               <span class="inline-flex items-center gap-2 rounded-full border border-gray-200 px-3 py-1 bg-white text-slate-900">
                 <span class="inline-block w-2.5 h-2.5 rounded-full" style="background:${categoryColor(label)}"></span>
@@ -1228,8 +1081,6 @@ async function loadReportsUI() {
         </div>
       </div>
     `;
-
-    const getVal = (id) => (document.getElementById(id)?.value ?? "");
 
     // wire events
     const $ = (id) => document.getElementById(id);
@@ -1259,19 +1110,22 @@ async function loadReportsUI() {
    Event delegation for status buttons
 ================================ */
 
-// Uses event delegation for dynamically rendered buttons
+// Uses event delegation for dynamically rendered buttons, Instead of adding listeners to every button individually, attach one listener to pageBody.
 pageBody.addEventListener("click", async (e) => {
-  const btn = e.target.closest(".status-btn"); // Finds closest .status-btn
+  const btn = e.target.closest(".status-btn"); // closest(".status-btn") finds the clicked button if click happened inside it
   if (!btn || btn.disabled) return;
 
+  // Reads data- attributes rendered earlier
   const orderId = btn.dataset.orderId;
   const status = btn.dataset.status;
   if (!orderId || !status) return;
 
+  // Temporary UI feedback
   const original = btn.textContent;
   btn.disabled = true;
   btn.textContent = "Updating...";
 
+  // Update backend, then refresh orders list, If error: restore button text and enable it
   try {
     await updateOrderStatus(orderId, status);
     await loadOrdersUI();
@@ -1283,26 +1137,30 @@ pageBody.addEventListener("click", async (e) => {
   }
 });
 
+
 /* ================================
-   Page Init
+   Page Init (main dashboard startup)
 ================================ */
+
+// Start auth UI, If logout happens, redirect home
 document.addEventListener("DOMContentLoaded", async () => {
   initAuthUI({ redirectOnLogout: "/index.html" });
 
-  // Read user AFTER initAuthUI
+  // Get logged user, Set auth header
   user = await readAuthUser();
   roleHeader = user?.token ? { Authorization: `Bearer ${user.token}` } : {};
 
+  // Normalize role
   const role = user?.role?.toLowerCase();
 
-  // staff/admin guard
+  // If not logged in OR not staff/admin: redirect to login page and pass next= so login can send them back
   if (!user || !["admin", "staff"].includes(role)) {
     const next = encodeURIComponent("/pages/dashboard/dashboard.html");
     window.location.href = `/login/login.html?next=${next}`;
     return;
   }
 
-  // show staff tab for admin
+  // Only admin sees the “View Staffs” tab
   const staffTabBtn = document.getElementById("staffTabBtn");
   if (role === "admin") {
     staffTabBtn?.classList.remove("hidden");
@@ -1354,11 +1212,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
+  // Clicking tab loads its content
   tabs.forEach((b) => {
-    b.addEventListener("click", () => loadTab(b.dataset.tab)); // Switches tabs dynamically without reload
+    b.addEventListener("click", () => loadTab(b.dataset.tab)); 
   });
 
-  // initial load
+  // initial load: default opens Tickets on load
   try {
     await loadTab("tickets");
   } catch (e) {
@@ -1370,7 +1229,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     `;
   }
 
-  // polling (refresh orders only when Orders tab is active) / Keeps order status up-to-date without full page reload
+  // Polling orders every 5 seconds
   setInterval(async () => {
     try {
       const activeBtn = document.querySelector(".dash-tab.bg-white/10");
@@ -1379,5 +1238,5 @@ document.addEventListener("DOMContentLoaded", async () => {
     } catch {
       // ignore polling errors
     }
-  }, 5000); // Runs every 5 seconds
+  }, 5000); 
 });
