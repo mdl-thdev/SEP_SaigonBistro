@@ -806,6 +806,7 @@ async function loadStaffUI() {
 /* ================================
 // Reports APIs
 =================================== */
+// Async function that loads and displays ticket reports/analytics, Called when user navigates to Reports page
 async function loadReportsUI() {
   pageTitle.textContent = "Case Reports";
   pageActions.innerHTML = "";
@@ -816,6 +817,7 @@ async function loadReportsUI() {
     </div>
   `;
 
+  // Fetches all tickets from the API, await: pauses execution until data arrives
   const allTickets = await fetchTickets();
 
   const STATUS_OPTIONS = [
@@ -828,6 +830,7 @@ async function loadReportsUI() {
     "Reopened",
   ];
 
+  // Building list of categories dynamically from tickets
   const CATEGORY_OPTIONS = ["All"].concat(
     Array.from(
       new Set(allTickets.map((t) => (t.category ?? "").toString().trim()).filter(Boolean))
@@ -843,41 +846,33 @@ async function loadReportsUI() {
 
   // ---------- helpers ----------
   function applyFilters(list) {
-    const startMs = parseDateOnlyToMs(state.startDate, false);
-    const endMs = parseDateOnlyToMs(state.endDate, true);
+    const startMs = parseDateOnlyToMs(state.startDate, false); // Converts date strings to milliseconds timestamps, false = start of day (00:00:00)
+    const endMs = parseDateOnlyToMs(state.endDate, true);   // true = end of day (23:59:59)
 
     const sStatus = safeLower(state.status);
     const sCat = safeLower(state.category);
 
-    // const filteredItems = items.filter(t => {
-    //   const catMatch =
-    //     state.category === "All" || t.category === state.category;
-
-    //   const staffMatch =
-    //     state.staff === "All" || t.owner_id === state.staff;
-
-    //   return catMatch && staffMatch;
-    // });
     return list.filter((t) => {
       const createdMs = t.created_at ? new Date(t.created_at).getTime() : null;
 
-      if (startMs != null && createdMs != null && createdMs < startMs) return false;
-      if (endMs != null && createdMs != null && createdMs > endMs) return false;
+      if (startMs != null && createdMs != null && createdMs < startMs) return false; // If start date is set AND ticket was created before start date → exclude
+      if (endMs != null && createdMs != null && createdMs > endMs) return false; // If end date is set AND ticket was created after end date → exclude
 
-      if (sStatus !== "all" && safeLower(t.status) !== sStatus) return false;
-      if (sCat !== "all" && safeLower(t.category) !== sCat) return false;
+      if (sStatus !== "all" && safeLower(t.status) !== sStatus) return false; // If status filter is not "All" AND ticket status doesn't match → exclude
+      if (sCat !== "all" && safeLower(t.category) !== sCat) return false;  // If category filter is not "All" AND ticket category doesn't match → exclude
 
-      return true;
+      return true; // If all checks pass → include ticket
     });
   }
 
+  // count items by a specific property, keyFn is a function that extracts the key from each item
   function countBy(list, keyFn) {
-    const m = new Map();
-    for (const x of list) {
-      const k = (keyFn(x) ?? "Unknown").toString().trim() || "Unknown";
+    const m = new Map(); // Creates a Map to store counts
+    for (const x of list) { // Loop through each item
+      const k = (keyFn(x) ?? "Unknown").toString().trim() || "Unknown";  // Extract key using keyFn, Default to "Unknown" if key is null/undefined/empty
       m.set(k, (m.get(k) || 0) + 1);
     }
-    return Array.from(m.entries()).sort((a, b) => b[1] - a[1]); // [key, count]
+    return Array.from(m.entries()).sort((a, b) => b[1] - a[1]); // [key, count], Sort by count descending (highest count first)
   }
 
   // Status text colors 
@@ -904,27 +899,32 @@ async function loadReportsUI() {
     "#60a5fa", // light blue
   ];
 
+  // Converts a string to a consistent number index, Used to assign colors to categories consistently
   function hashToIndex(str, mod) {
-    const s = String(str ?? "");
+    const s = String(str ?? "");  // Convert to string, default to empty string
     let h = 0;
-    for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
-    return h % mod;
+    for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; // Loop through each character, h * 31 - multiply current hash by 31 (prime number), + s.charCodeAt(i) - add character code, >>> 0 - convert to unsigned 32-bit integer (prevents negative numbers)
+    return h % mod;  // Use modulo to get index within range 0 to (mod-1), Example: if mod=10, returns 0-9
   }
 
+  // Takes a category name, Hashes it to get consistent index (0-9), Returns corresponding color from palette, Same category always gets same color
   function categoryColor(label) {
     return CATEGORY_PALETTE[hashToIndex(label, CATEGORY_PALETTE.length)];
   }
 
+  // Generates SVG bar chart HTML, items - array of [label, count] pairs, Destructured parameters with defaults:
   function renderBarChart(items, { width = 720, barH = 22, gap = 10, left = 220, right = 20 } = {}) {
-    const max = Math.max(1, ...items.map(([, c]) => c));
-    const height = Math.max(90, items.length * (barH + gap) + 30);
-    const chartW = width - left - right;
+    const max = Math.max(1, ...items.map(([, c]) => c));  // Find the highest count value, ...items.map(([, c]) => c) - extract all counts, Math.max(1, ...) - ensure minimum of 1 to avoid division by zero
+    const height = Math.max(90, items.length * (barH + gap) + 30); // Calculate total SVG height, items.length * (barH + gap) - space needed for all bars, + 30 - padding, Math.max(90, ...) - minimum height of 90px
+    const chartW = width - left - right; // Calculate available width for bars (excluding margins)
 
+    // Generate Bar Rows, Map each item to SVG elements, [label, count] - destructure the array, i - index for positioning
     const rows = items.map(([label, count], i) => {
-      const y = 20 + i * (barH + gap);
-      const w = Math.round((count / max) * chartW);
-      const fill = categoryColor(label);
+      const y = 20 + i * (barH + gap);  // Calculate vertical position for this bar, Starts at 20px, then each bar is (barH + gap) pixels below previous
+      const w = Math.round((count / max) * chartW); // Calculate bar width proportional to count, (count / max) - percentage of max value, * chartW - scale to available width, Math.round() - round to nearest pixel
+      const fill = categoryColor(label); // Get consistent color for this category
 
+      // Label Text: SVG text element for category label, x="${left - 10}" - positioned 10px before the bars start, y="${y + barH - 6}" - vertically aligned with bar,text-anchor="end" - right-align text,  Shows category name (e.g., "Billing")
       return `
         <text x="${left - 10}" y="${y + barH - 6}" text-anchor="end" font-size="12" fill="#000000">
           ${escapeHtml(label)}
@@ -938,6 +938,7 @@ async function loadReportsUI() {
       `;
     }).join("");
 
+    // Assemble SVG, viewBox="0 0 ${width} ${height}" - coordinate system, class="w-full h-auto" - responsive sizing
     return `
       <svg viewBox="0 0 ${width} ${height}" class="w-full h-auto">
         <text x="${left}" y="14" font-size="12" fill="#334155">Count</text>
@@ -947,28 +948,33 @@ async function loadReportsUI() {
   }
 
   // ---------- render ----------
+  // function that draws the entire reports page
   function render() {
-    const filtered = applyFilters(allTickets);
-    const byStatus = countBy(filtered, (t) => t.status ?? "Unknown");
-    const byCategory = countBy(filtered, (t) => t.category ?? "Unknown");
-    const total = filtered.length;
+    const filtered = applyFilters(allTickets); // Calculate Data, Get filtered tickets based on current state
+    const byStatus = countBy(filtered, (t) => t.status ?? "Unknown"); // Count tickets by status, Returns: [["Resolved", 45], ["New", 23], ...]
+    const byCategory = countBy(filtered, (t) => t.category ?? "Unknown"); // Count tickets by category
+    const total = filtered.length; // Total number of filtered tickets
 
-    // Top right summary text 
+    // Update Page Actions (Top Right)
     pageActions.innerHTML = `
-      <div class="text-sm text-slate-300">
+      <div class="text-sm text-black">
         Showing <span class="font-semibold text-black">${total}</span> case(s)
       </div>
     `;
 
+    // Take only top 10 categories (already sorted by count)
     const topCategories = byCategory.slice(0, 10);
 
+    // Start building the page content
     pageBody.innerHTML = `
       <!-- Filters -->
       <div class="border border-gray-200 rounded-2xl p-4 bg-white text-slate-900">
         <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <!-- LEFT: filters -->
+          
+        <!-- LEFT: filters -->
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full lg:w-auto">
-            <label class="space-y-1">
+            
+          <label class="space-y-1">
               <div class="text-xs font-semibold text-black">Start date</div>
               <input id="rStart" type="date"
                 value="${escapeHtml(state.startDate)}"
@@ -1005,6 +1011,7 @@ async function loadReportsUI() {
 
           <!-- RIGHT: buttons -->
           <div class="flex items-center gap-2 justify-end shrink-0">
+            
             <button id="rApply"
               class="rounded-xl px-4 py-2 text-sm font-semibold border border-gray-300 text-slate-900 hover:bg-black/5">
               Apply
@@ -1014,6 +1021,7 @@ async function loadReportsUI() {
               class="rounded-xl px-4 py-2 text-sm font-semibold border border-gray-300 text-slate-900 hover:bg-black/5">
               Reset
             </button>
+
           </div>
         </div>
       </div>
@@ -1021,12 +1029,12 @@ async function loadReportsUI() {
       <!-- Summary cards -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div class="border border-gray-200 rounded-2xl p-4 bg-white text-slate-900">
-          <div class="text-xs text-slate-400">Total cases</div>
+          <div class="text-xs text-black">Total cases</div>
           <div class="text-3xl font-extrabold mt-1">${total}</div>
         </div>
 
         <div class="border border-gray-200 rounded-2xl p-4 bg-white text-slate-900">
-          <div class="text-xs text-slate-400">Top category</div>
+          <div class="text-xs text-black">Top category</div>
           <div class="text-lg font-bold mt-1">${escapeHtml(topCategories[0]?.[0] ?? "-")}</div>
           <div class="text-sm text-black">${topCategories[0]?.[1] ?? 0} case(s)</div>
         </div>
@@ -1083,8 +1091,9 @@ async function loadReportsUI() {
     `;
 
     // wire events
-    const $ = (id) => document.getElementById(id);
+    const $ = (id) => document.getElementById(id);  // Shorthand for getting elements by ID
 
+    // Apply Button
     $("rApply")?.addEventListener("click", () => {
       state.startDate = $("rStart").value;
       state.endDate = $("rEnd").value;
@@ -1093,6 +1102,7 @@ async function loadReportsUI() {
       render();
     });
 
+    // Reset Button
     $("rReset")?.addEventListener("click", () => {
       state.startDate = "";
       state.endDate = "";

@@ -3,29 +3,29 @@
 import { initAuthUI, getAuthUser as readAuthUser } from "../../js/auth.js";
 import { API_BASE_URL } from "../../js/api.js";
 
+// DOM element, Reads elements from the HTML using their IDs
 const caseTitle = document.getElementById("caseTitle");
 const caseMeta = document.getElementById("caseMeta");
 let caseActions = document.getElementById("caseActions");
 const caseBody = document.getElementById("caseBody");
 const notice = document.getElementById("notice");
 
-const API_BASE = "http://localhost:3000";
-
-let user = null;
-let roleHeader = {};
-let activeTicketId = null;
-let latestPayload = null;
+// Runtime state:
+let user = null;  // user: logged-in user object from auth
+let roleHeader = {};  // roleHeader: headers object containing Authorization token
+let activeTicketId = null; // activeTicketId: ticket id from URL query string
+let latestPayload = null; // latestPayload: last response from backend (ticket + comments + feedback), cached for modal usage
 
 // Admin Assign modal state (frontend only)
-let assigneesCache = [];
-let selectedAssigneeId = null;
+let assigneesCache = []; // assigneesCache: list of possible assignees from the server
+let selectedAssigneeId = null; // selectedAssigneeId: who is selected in the modal UI
 
 /* ---------------- helpers ---------------- */
 
 function formatDT(v) {
   if (!v) return "-";
   const d = new Date(v);
-  return Number.isNaN(d.getTime()) ? "-" : d.toLocaleString();
+  return Number.isNaN(d.getTime()) ? "-" : d.toLocaleString(); // Converts a date value into a readable local date string
 }
 
 function escapeHtml(s = "") {
@@ -41,7 +41,7 @@ function escapeHtml(s = "") {
 function renderStars(n) {
   const s = Number(n) || 0;
   return Array.from({ length: 5 })
-    .map((_, i) => (i < s ? "★" : "☆"))
+    .map((_, i) => (i < s ? "★" : "☆")) // Turns a number like 3 into "★★★☆☆"
     .join("");
 }
 
@@ -59,22 +59,12 @@ function showNotice(type, msg) {
 }
 
 function getTicketIdFromURL() {
-  return new URL(window.location.href).searchParams.get("id");
-}
-
-function badgeClassForStatus(status) {
-  const s = (status || "").toLowerCase();
-  if (s === "resolved") return "bg-green-100 text-green-800";
-  if (s === "in progress") return "bg-yellow-100 text-yellow-800";
-  if (s === "pending review") return "bg-purple-100 text-purple-800";
-  if (s === "waiting customer response") return "bg-orange-100 text-orange-800";
-  if (s === "reopened") return "bg-red-100 text-red-800";
-  if (s === "new") return "bg-blue-100 text-blue-800";
-  return "bg-slate-100 text-slate-800";
+  return new URL(window.location.href).searchParams.get("id");  // Reads the ?id=... query parameter from the current page URL
 }
 
 /* ---------------- api ---------------- */
 
+// Makes a request to API_BASE_URL + path. Adds JSON content type plus auth header (roleHeader), plus any custom headers
 async function api(path, options = {}) {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
@@ -85,11 +75,12 @@ async function api(path, options = {}) {
     },
   });
 
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(json?.message || "Request failed");
-  return json;
+  const json = await res.json().catch(() => ({}));  // Tries to parse JSON response
+  if (!res.ok) throw new Error(json?.message || "Request failed"); // If HTTP status is not OK (like 400/401/500), throws an Error using server message if available
+  return json; // Otherwise returns parsed JSON
 }
 
+// API calls
 async function assignTicketToSelf(ticketId) {
   return api(`/api/tickets/${encodeURIComponent(ticketId)}/assign-self`, {
     method: "PATCH",
@@ -112,7 +103,7 @@ async function postStaffReply(ticketId, message) {
 }
 
 async function fetchAssignees() {
-  return api(`/api/tickets/assignees/list`, { method: "GET" });
+  return api(`/api/tickets/assignees/list`, { method: "GET" });  // Get list of possible assignees (admin feature)
 }
 
 async function assignTicketOwner(ticketId, owner_id) {
@@ -126,16 +117,16 @@ async function assignTicketOwner(ticketId, owner_id) {
 
 function closeAssignModal() {
   selectedAssigneeId = null;
-  document.getElementById("assignModalOverlay")?.remove();
+  document.getElementById("assignModalOverlay")?.remove(); // Clears selected assignee and removes the modal overlay from the DOM
 }
 
 function openAssignModal(currentOwnerId) {
-  selectedAssigneeId = currentOwnerId || null;
+  selectedAssigneeId = currentOwnerId || null;  // Sets initial selection to current owner (if any), then draws modal
   renderAssignModal();
 }
 
 function renderAssignModal() {
-  document.getElementById("assignModalOverlay")?.remove();
+  document.getElementById("assignModalOverlay")?.remove(); // Ensures only one modal exists (remove old one before creating new)
   const overlay = document.createElement("div");
   overlay.id = "assignModalOverlay";
   overlay.className = "fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4";
@@ -158,16 +149,19 @@ function renderAssignModal() {
       </div>
     </div>
   `;
-  document.body.appendChild(overlay);
+  document.body.appendChild(overlay); // Injects modal HTML and attaches to page
 
+  // Then it grabs modal elements
   const listEl = document.getElementById("assigneeList");
   const searchEl = document.getElementById("assigneeSearch");
 
+  // Filters assignees by search query (matches display_name or email)
   function drawList(filter = "") {
     const q = filter.toLowerCase().trim();
     const rows = (assigneesCache || []).filter(a => 
       !q || (a.display_name || '').toLowerCase().includes(q) || (a.email || '').toLowerCase().includes(q)
     );
+    // Renders each assignee as a button
     listEl.innerHTML = rows.map(a => `
       <button data-id="${a.id}" class="w-full text-left rounded-xl border px-3 py-2 ${selectedAssigneeId === a.id ? "bg-slate-50 border-slate-400" : ""}">
         <div class="text-sm font-semibold">${escapeHtml(a.display_name || a.email)}</div>
@@ -175,14 +169,16 @@ function renderAssignModal() {
       </button>
     `).join("");
 
+    // Clicking a row sets selectedAssigneeId and re-renders list so highlight updates
     listEl.querySelectorAll("button[data-id]").forEach(btn => {
       btn.onclick = () => { selectedAssigneeId = btn.dataset.id; drawList(searchEl.value); };
     });
   }
-  drawList("");
+  drawList(""); // First render with no filter
 
   document.getElementById("btnCloseAssignModal").onclick = closeAssignModal;
-  document.getElementById("btnUnassign").onclick = () => { selectedAssigneeId = null; drawList(searchEl.value); };
+  document.getElementById("btnUnassign").onclick = () => { selectedAssigneeId = null; drawList(searchEl.value); }; // Clears selection (unassign)
+  // Calls backend to update owner, hows success message, closes modal, reloads ticket
   document.getElementById("btnConfirmAssign").onclick = async () => {
     await assignTicketOwner(activeTicketId, selectedAssigneeId);
     showNotice("success", "Assignment updated.");
@@ -193,8 +189,9 @@ function renderAssignModal() {
 
 /* ---------------- render ---------------- */
 
+// Rendering ticket header actions
 function renderHeaderBadges(t, ctx) {
-  const { canWork, canClaim, isAdmin } = ctx;
+  const { canWork, canClaim, isAdmin } = ctx;  // Reads permissions and defines allowed statuses for dropdown
   const STATUS_OPTIONS = ["New", "Pending Review", "In Progress", "Waiting Customer Response", "Resolved", "Reopened"];
 
   caseActions.innerHTML = `
@@ -227,12 +224,15 @@ function renderHeaderBadges(t, ctx) {
   `;
 }
 
+// Rendering the ticket detail
 function renderDetail(payload) {
+  // Saves payload and extracts ticket/comments/feedback safely
   latestPayload = payload;
   const t = payload.ticket || {};
   const comments = Array.isArray(payload.comments) ? payload.comments : [];
   const feedback = payload.feedback || null;
 
+  // Permissions:
   const role = String(user?.role || "").toLowerCase();
   const isAdmin = role === "admin";
   const isOwner = t.owner_id === user?.id;
@@ -240,7 +240,9 @@ function renderDetail(payload) {
   const statusLower = String(t.status || "").toLowerCase();
   const canClaim = !isOwner && (isAdmin || !t.owner_id || statusLower === "reopened");
 
+  // Uses nested owner object if present, otherwise fallback
   const ownerName = t.owner?.display_name || t.owner?.email || (t.owner_id ? t.owner_id : "Unassigned");
+  // Conversation thread:
   const thread = [{ author_role: "customer", message: t.description || "", created_at: t.created_at }, ...comments]
     .filter(m => String(m.message || "").trim().length > 0);
 
@@ -302,16 +304,19 @@ function renderDetail(payload) {
     ${feedbackBlock}
   `;
 
+  // Replaces the caseActions reference so action buttons render inside the body area
   caseActions = document.getElementById("caseActionsInline") || caseActions;
 
-  // Update local reference and call badge renderer
+  // Draws the buttons/dropdowns and hooks their click handlers
   renderHeaderBadges(t, { canWork, canClaim, isAdmin });
   wireEvents({ canWork, canClaim, isAdmin });
 }
 
 /* ---------------- events ---------------- */
 
+// Wiring events (buttons/forms)
 function wireEvents({ canWork, canClaim, isAdmin }) {
+  // Assign to me, Calls API, shows notice, reloads
   document.getElementById("btnAssignMe")?.addEventListener("click", async () => {
     try {
       await assignTicketToSelf(activeTicketId);
@@ -319,7 +324,8 @@ function wireEvents({ canWork, canClaim, isAdmin }) {
       await reload();
     } catch (e) { showNotice("error", e.message); }
   });
-
+  
+  // Update status: Reads dropdown value and PATCHes it
   document.getElementById("btnUpdateStatus")?.addEventListener("click", async () => {
     const status = document.getElementById("statusSelect")?.value;
     try {
@@ -329,10 +335,11 @@ function wireEvents({ canWork, canClaim, isAdmin }) {
     } catch (e) { showNotice("error", e.message); }
   });
 
+  // Reply form submit:
   document.getElementById("replyForm")?.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const textarea = document.getElementById("replyText");
-    const message = textarea.value.trim();
+    e.preventDefault(); // Prevents page reload
+    const textarea = document.getElementById("replyText"); // Sends comment
+    const message = textarea.value.trim(); // Clears textarea and reloads
     if (!message) return;
     try {
       await postStaffReply(activeTicketId, message);
@@ -342,6 +349,7 @@ function wireEvents({ canWork, canClaim, isAdmin }) {
     } catch (err) { showNotice("error", err.message); }
   });
 
+  // Admin assign modal button:If no cached assignees, fetch once, Opens modal with current owner pre-selected
   document.getElementById("btnAssign")?.addEventListener("click", async () => {
     if (!assigneesCache.length) {
       const out = await fetchAssignees();
@@ -351,6 +359,7 @@ function wireEvents({ canWork, canClaim, isAdmin }) {
   });
 }
 
+// Reloading ticket data from server: Calls backend to get ticket detail payload
 async function reload() {
   try {
     const payload = await api(`/api/tickets/${encodeURIComponent(activeTicketId)}`);
@@ -360,6 +369,7 @@ async function reload() {
   }
 }
 
+// Page startup (DOMContentLoaded)
 document.addEventListener("DOMContentLoaded", async () => {
   initAuthUI({ redirectOnLogout: "/index.html" });
   user = await readAuthUser();
