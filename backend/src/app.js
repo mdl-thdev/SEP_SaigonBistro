@@ -22,6 +22,10 @@ app.use((req, res, next) => {
   next();
 });
 
+app.get("/", (req, res) => {
+  res.status(200).json({ message: "Saigon Bistro API is running" });
+});
+
 app.use("/api", apiRoutes);
 
 module.exports = app;
