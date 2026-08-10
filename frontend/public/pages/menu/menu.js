@@ -119,7 +119,9 @@ function createCategoryHTML(name, image) {
   const isBold = name === currentCategory ? "font-bold" : "font-semibold";
 
   return `
-    <div data-category="${name}" class="category-item cursor-pointer text-center space-y-2 group">
+    <div data-testid="category-button"
+         data-category="${name}"
+         class="category-item cursor-pointer text-center space-y-2 group">
       <img src="${resolvePublicPath(image)}" alt="${name}"
         onerror="this.onerror=null;this.src='${PLACEHOLDER_SVG_DATA_URI}'"
         class="w-20 h-20 rounded-full border-4 ${isActive}
@@ -164,43 +166,62 @@ function createItemCardHTML(item, count) {
   const safeName = item.name ?? "Menu item";
 
   return `
-    <div class="w-full rounded-xl shadow-md overflow-hidden relative bg-white">
-      <div class="relative aspect-square overflow-hidden">
-        <img src="${imgSrc}" alt="${safeName}"
-          onerror="this.onerror=null;this.src='${PLACEHOLDER_SVG_DATA_URI}'"
-          class="w-full h-full object-cover">
+    <div data-testid="menu-item" class="relative overflow-hidden rounded-xl bg-white shadow-sm">
+      <img
+        src="${imgSrc}"
+        alt="${safeName}"
+        onerror="this.onerror=null;this.src='${PLACEHOLDER_SVG_DATA_URI}'"
+        class="w-full h-64 object-cover"
+      />
 
-        <div class="absolute bottom-4 right-4 bg-white rounded-full shadow-lg p-1">
-          ${count === 0
-      ? `
-                <button data-id="${item.id}" data-action="add"
-                  class="cart-action-btn w-10 h-10 rounded-full bg-green-600 text-white grid place-items-center hover:bg-green-700 active:scale-95 transition">
+      <div class="absolute bottom-4 right-4 bg-white rounded-full shadow-lg p-1">
+        ${
+          count === 0
+            ? `
+              <button
+                data-id="${item.id}"
+                data-action="add"
+                class="cart-action-btn w-10 h-10 rounded-full bg-green-600 text-white grid place-items-center hover:bg-green-700 active:scale-95 transition"
+              >
+                ${iconPlus()}
+              </button>
+            `
+            : `
+              <div class="flex items-center gap-2 bg-white rounded-full px-2 py-1 shadow-lg">
+                <button
+                  data-id="${item.id}"
+                  data-action="remove"
+                  class="cart-action-btn w-8 h-8 rounded-full bg-red-600 text-white grid place-items-center hover:bg-red-700 active:scale-95 transition"
+                >
+                  ${iconMinus()}
+                </button>
+
+                <span class="font-bold text-sm min-w-[1.25rem] text-center">
+                  ${count}
+                </span>
+
+                <button
+                  data-id="${item.id}"
+                  data-action="add"
+                  class="cart-action-btn w-8 h-8 rounded-full bg-green-600 text-white grid place-items-center hover:bg-green-700 active:scale-95 transition"
+                >
                   ${iconPlus()}
                 </button>
-              `
-      : `
-                <div class="flex items-center gap-2 bg-white rounded-full px-2 py-1 shadow-lg">
-                  <button data-id="${item.id}" data-action="remove"
-                    class="cart-action-btn w-8 h-8 rounded-full bg-red-600 text-white grid place-items-center hover:bg-red-700 active:scale-95 transition">
-                    ${iconMinus()}
-                  </button>
-
-                  <span class="font-bold text-sm min-w-[1.25rem] text-center">${count}</span>
-
-                  <button data-id="${item.id}" data-action="add"
-                    class="cart-action-btn w-8 h-8 rounded-full bg-green-600 text-white grid place-items-center hover:bg-green-700 active:scale-95 transition">
-                    ${iconPlus()}
-                  </button>
-                </div>
-              `
-    }
-        </div>
+              </div>
+            `
+        }
       </div>
 
       <div class="p-4 space-y-2">
         <p class="font-semibold">${safeName}</p>
-        <p class="text-xs text-slate-500 line-clamp-2">${item.description ?? ""}</p>
-        <p class="text-lg font-bold">${formatMoney(item.price ?? 0)}</p>
+
+        <p class="text-xs text-slate-500 line-clamp-2">
+          ${item.description ?? ""}
+        </p>
+
+        <p class="text-lg font-bold">
+          ${formatMoney(item.price ?? 0)}
+        </p>
       </div>
     </div>
   `;
@@ -212,30 +233,45 @@ function renderItems() {
   itemDisplayGrid.innerHTML = "";
 
   menuHeading.textContent =
-    currentCategory === "All" ? "Top Items for You" : `${currentCategory} Items`;
+    currentCategory === "All"
+      ? "Top Items for You"
+      : `${currentCategory} Items`;
 
   const cart = getCart();
-  const filtered = items.filter((i) => currentCategory === "All" || i.category === currentCategory);
+
+  const filtered = items.filter(
+    (i) => currentCategory === "All" || i.category === currentCategory
+  );
 
   if (!filtered.length) {
     itemDisplayGrid.innerHTML =
-      `<p class="text-center text-slate-500 col-span-full">No items found.</p>`;
+      `<p data-testid="menu-empty-message" class="text-center text-slate-500 col-span-full">No items found.</p>`;
     return;
   }
 
   filtered.forEach((item) => {
     const count = cart[String(item.id)] || 0;
-    itemDisplayGrid.insertAdjacentHTML("beforeend", createItemCardHTML(item, count));
+
+    itemDisplayGrid.insertAdjacentHTML(
+      "beforeend",
+      createItemCardHTML(item, count)
+    );
   });
 
   // bind actions
   document.querySelectorAll(".cart-action-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const { id, action } = btn.dataset;
+
       if (!id || !action) return;
 
-      if (action === "add") addItem(String(id), 1);
-      if (action === "remove") removeItem(String(id), 1);
+      if (action === "add") {
+        addItem(String(id), 1);
+      }
+
+      if (action === "remove") {
+        removeItem(String(id), 1);
+      }
 
       updateCartUI();
       renderItems();
@@ -256,7 +292,7 @@ function updateCartUI() {
 
   // empty state
   if (!ids.length) {
-    cartDrawerItems.innerHTML = `<p class="text-center text-slate-500 pt-10">Your cart is empty.</p>`;
+    cartDrawerItems.innerHTML = `<p data-testid="empty-menu-message" class="text-center text-slate-500 pt-10">Your cart is empty.</p>`;
     drawerSubtotalText.textContent = formatMoney(0);
     checkoutLink.classList.add("opacity-50", "pointer-events-none");
     return;
@@ -272,7 +308,7 @@ function updateCartUI() {
       const count = cart[id];
 
       return `
-        <div class="flex items-center justify-between p-2 border-b">
+        <div data-testid="menu-item" class="flex items-center justify-between p-2 border-b">
           <div class="flex items-center gap-3">
             <img src="${resolvePublicPath(item.image)}"
               onerror="this.onerror=null;this.src='${PLACEHOLDER_SVG_DATA_URI}'"
@@ -373,7 +409,7 @@ document.addEventListener("DOMContentLoaded", () => {
     console.error(err);
     if (itemDisplayGrid) {
       itemDisplayGrid.innerHTML =
-        `<p class="text-center text-red-600 col-span-full">Failed to load menu.</p>`;
+        `<p data-testid="empty-menu-message"class="text-center text-red-600 col-span-full">Failed to load menu.</p>`;
     }
   });
 });

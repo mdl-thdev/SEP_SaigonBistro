@@ -37,3 +37,5 @@ supabase/.temp/
 # ========
 scripts/create-users.js
 scripts/seed.js
+test-results/
+playwright-report/

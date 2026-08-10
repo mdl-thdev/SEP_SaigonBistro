@@ -1,17 +1,33 @@
 {
   "name": "sep-saigonbistro-root",
   "private": true,
-  "type": "module",
   "scripts": {
-    "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev:frontend\"",
-    "dev:frontend": "npx http-server frontend/public -p 5173 -c-1"
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "node --watch backend/src/server.js",
+    "dev:frontend": "http-server frontend/public -p 5173 -c-1",
+    "start": "node backend/src/server.js",
+    "test": "npm run test:unit && npm run test:api",
+    "test:unit": "jest tests/unit --runInBand",
+    "test:api": "jest tests/api --runInBand",
+    "test:bdd": "jest tests/bdd --runInBand",
+    "test:ui": "playwright test",
+    "test:ui:headed": "playwright test --headed",
+    "test:ui:report": "playwright show-report",
+    "test:perf": "k6 run tests/perf/load_test.js",
+    "test:all": "npm run test:unit && npm run test:api && npm run test:bdd && npm run test:ui"
   },
-  "devDependencies": {
-    "concurrently": "^9.0.0",
-    "http-server": "^14.1.1"
-  },
+  "jest": {},
   "dependencies": {
     "@supabase/supabase-js": "^2.91.0",
-    "dotenv": "^17.2.3"
+    "bcryptjs": "^3.0.3",
+    "dotenv": "^17.2.3",
+    "express": "^4.22.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "concurrently": "^9.0.0",
+    "http-server": "^14.1.1",
+    "jest": "^30.4.2",
+    "supertest": "^7.2.2"
   }
 }
