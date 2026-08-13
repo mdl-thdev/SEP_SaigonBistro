@@ -1,23 +1,15 @@
-// tests/perf/menu.perf.test.js
-// k6 run tests/perf/menu.perf.test.js
-// k6 performance test for GET /api/menu
-// Verifies system stability and latency under concurrent traffic
-// Prerequisite: backend must be running, e.g.
-//   npm run dev:backend   (assumed at http://localhost:3000)
+// tests/perf/load_test.js
+// k6 run tests/perf/load_test.js / npm run dev:backend   (http://localhost:3000)
 
 import http from "k6/http";
 import { check, sleep } from "k6";
 
 export const options = {
-  // Simulate 20 concurrent Virtual Users
-  vus: 20,
-
-  // Run for 30 seconds
+  vus: 20,  // Simulate 20 concurrent Virtual Users
   duration: "30s",
 
-  // Threshold: 95% of requests must complete under 500ms.
-  // If this threshold is breached, k6 exits with a non-zero status code -
-  // useful for CI pipelines that should fail the build on a perf regression.
+  // Threshold: 95% of requests must complete under 500ms
+  // If this threshold is breached, k6 exits with a non-zero status code, useful for CI pipelines that should fail the build on a perf regression
   thresholds: {
     http_req_duration: ["p(95)<500"],
     checks: ["rate>0.95"], // at least 95% of checks (status 200) must pass
